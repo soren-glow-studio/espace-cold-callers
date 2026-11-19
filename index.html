@@ -4,33 +4,103 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Espace Cold Callers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
-:root{--bg:#0f1115;--card:#181b22;--line:#262a34;--tx:#e8eaf0;--mut:#8a90a2;--ac:#4f8cff;--ok:#2fbf71;--warn:#f0b429}
-@media (prefers-color-scheme:light){:root{--bg:#f4f5f8;--card:#fff;--line:#e2e5ec;--tx:#1b1e27;--mut:#6a7185}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,Segoe UI,sans-serif}
-header{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
-header b{margin-right:auto}
-nav button,.btn{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;font:inherit}
-nav button.on,.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}
-main{max-width:900px;margin:0 auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
-h2{margin:0 0 10px;font-size:17px}h3{margin:0 0 8px;font-size:15px}
-.mut{color:var(--mut)}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-input,select{background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;width:100%}
-label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
-.bar{height:12px;background:var(--line);border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
-.big{font-size:28px;font-weight:700}
-table{width:100%;border-collapse:collapse}td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mut);font-weight:500;font-size:13px}
-tr.me td{background:rgba(79,140,255,.15);font-weight:600}
-.chk{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.chk input{width:20px;height:20px}
-iframe{width:100%;border:0;border-radius:10px;background:#000}
-.err{color:#ff6b6b;margin-top:8px}.hide{display:none}
+:root{
+  --ink:#060912;--s1:rgba(15,21,38,.72);--s2:rgba(21,29,52,.78);--s3:rgba(28,38,66,.8);
+  --line:rgba(170,190,255,.09);--line2:rgba(170,190,255,.16);--line3:rgba(170,190,255,.28);
+  --plat:#eef2fb;--dim:#aab3c5;--faint:#7d879a;
+  --star:#6f9bff;--star2:#4f78e6;--champ:#f2c14e;--ok:#4ecb8e;--bad:#ff7a70;
+  --metal:linear-gradient(177deg,#ffffff 0%,#dfe5ef 45%,#aab6c8 100%);
+  --ui:"Inter Tight",system-ui,-apple-system,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  --r:10px;--t:170ms cubic-bezier(.2,.6,.2,1);
+}
+*{box-sizing:border-box}
+html{background:var(--ink)}
+body{margin:0;min-height:100vh;color:#fff;font:15px/1.55 var(--ui);-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;background:transparent}
+#skyBg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;pointer-events:none}
+#skyGlow{position:fixed;z-index:-1;pointer-events:none;width:560px;height:560px;border-radius:50%;left:50%;top:30%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(130,165,255,.09),rgba(130,165,255,.03) 45%,transparent)}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.025;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+header.app{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:18px;padding:0 28px;height:54px;border-bottom:1px solid var(--line);background:rgba(6,9,18,.62);backdrop-filter:blur(16px)}
+.brand{font:600 12px var(--mono);letter-spacing:.34em;color:var(--plat);white-space:nowrap}
+.brand i{display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:50%;background:var(--star);box-shadow:0 0 14px var(--star)}
+nav.tabs{display:flex;gap:2px;margin-left:24px;flex:1}
+.tab{position:relative;background:none;border:0;color:#aeb6c6;font:600 14.5px var(--ui);padding:0 14px;height:54px;cursor:pointer;transition:color var(--t)}
+.tab:hover{color:#fff}
+.tab.on{color:#fff}
+.tab.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--star);box-shadow:0 0 12px var(--star)}
+.who{color:var(--dim);font-size:13.5px}
+.link{background:none;border:0;color:var(--dim);font:600 13.5px var(--ui);cursor:pointer;padding:6px 4px}
+.link:hover{color:#fff}
+main{max-width:1000px;margin:0 auto;padding:32px 24px 90px}
+.date{color:var(--faint);font-size:14px;margin:0 0 6px}
+h1{margin:0 0 22px;font-size:38px;line-height:1.05;font-weight:700;letter-spacing:-.035em}
+h2{margin:0 0 12px;font-size:19px;font-weight:700;letter-spacing:-.02em}
+h3{margin:0 0 6px;font-size:13.5px;font-weight:500;color:var(--dim)}
+.sec{display:flex;align-items:baseline;gap:10px;margin:34px 0 4px}
+.sec h2{margin:0}.sec span{color:var(--faint);font-size:14px}
+.mut{color:var(--dim)}.faint{color:var(--faint)}
+.hero{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:flex-end;gap:28px;flex-wrap:wrap;padding:30px 32px;border-radius:18px;border:1px solid var(--line2);
+  background:radial-gradient(120% 140% at 0% 0%,rgba(111,155,255,.13),transparent 55%),linear-gradient(rgba(22,31,56,.85),rgba(12,17,32,.85));
+  box-shadow:0 30px 60px -40px #000,inset 0 1px 0 rgba(255,255,255,.05)}
+.hero .l{flex:1;min-width:260px}
+.big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:8px 0 0}
+.big b{font-weight:700;font-size:64px;line-height:.9;letter-spacing:-.04em;color:var(--plat)}
+.big span{color:var(--dim);font-size:15px}
+.bar{height:5px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:18px}
+.bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--star2),var(--star));transition:width .4s}
+.bar.ok i{background:linear-gradient(90deg,#3fb57d,#5fd79c)}
+.go{display:inline-flex;align-items:center;justify-content:center;height:56px;padding:0 28px;border-radius:12px;border:0;cursor:pointer;color:#04150d;font:700 15.5px var(--ui);
+  background:linear-gradient(#5fd79c,#3fb57d);box-shadow:0 12px 30px -12px rgba(78,203,142,.65),inset 0 1px 0 rgba(255,255,255,.35);transition:filter var(--t),transform var(--t)}
+.go:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:var(--r);border:1px solid var(--line2);background:var(--s2);color:#fff;font:700 14px var(--ui);cursor:pointer;transition:background var(--t),border-color var(--t)}
+.btn:hover{border-color:var(--line3);background:var(--s3)}
+.btn.pri{background:linear-gradient(#7aa6ff,#4f78e6);border-color:transparent;box-shadow:0 10px 26px -12px rgba(111,155,255,.8),inset 0 1px 0 rgba(255,255,255,.3)}
+.silver{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:14px;border:1px solid rgba(255,255,255,.5);cursor:pointer;color:#0a0d14;font:700 14px var(--ui);
+  background:var(--metal);box-shadow:0 12px 30px -14px rgba(200,215,255,.9);transition:filter var(--t)}
+.silver:hover{filter:brightness(1.06)}
+.panel{background:var(--s1);border:1px solid var(--line2);border-radius:16px;padding:22px 24px;backdrop-filter:blur(12px);box-shadow:0 30px 60px -44px #000,inset 0 1px 0 rgba(255,255,255,.04);margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.todo{display:flex;align-items:center;gap:16px;padding:16px 4px;border-top:1px solid var(--line)}
+.todo:last-child{border-bottom:1px solid var(--line)}
+.todo .t{flex:1}.todo .t b{display:block;font-size:16px;font-weight:600}.todo .t small{color:var(--faint);font-size:13.5px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--champ);box-shadow:0 0 10px rgba(242,193,78,.7);flex:none}
+.todo.done .dot{background:var(--ok);box-shadow:0 0 10px rgba(78,205,142,.6)}.todo.done .t b{color:var(--faint);text-decoration:line-through;font-weight:500}
+.gold{color:var(--champ);font-weight:700}
+.pill{display:inline-block;padding:5px 11px;border-radius:30px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line2);color:var(--dim)}
+label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px;font-weight:500}
+input{width:100%;height:44px;padding:0 14px;border-radius:var(--r);border:1px solid var(--line2);background:rgba(6,9,18,.6);color:#fff;font:500 15px var(--ui);outline:none;transition:border-color var(--t),box-shadow var(--t)}
+input:focus{border-color:var(--star);box-shadow:0 0 0 3px rgba(111,155,255,.18)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--star);flex:none}
+.sub{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.sub button{background:none;border:0;color:var(--faint);font:600 14.5px var(--ui);padding:10px 14px;cursor:pointer;position:relative}
+.sub button.on{color:#fff}.sub button.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--star);box-shadow:0 0 10px var(--star)}
+.av{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--metal);color:#0a0d14;font:700 15px var(--ui);box-shadow:0 10px 24px -12px rgba(200,215,255,.8);flex:none}
+.av.lg{width:64px;height:64px;border-radius:16px;font-size:20px}
+.av.gold{outline:2px solid rgba(242,193,78,.7);box-shadow:0 0 30px rgba(242,193,78,.35)}
+.podium{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:14px;align-items:end;margin:26px 0 8px}
+.podium .p{text-align:center}.podium .p b{display:block;margin-top:10px;font-size:15px}.podium .p .pts{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.podium .p.first .pts{font-size:30px;color:var(--champ)}
+.podium .p small{color:var(--faint);font-size:12.5px}
+table{width:100%;border-collapse:collapse}
+th{color:var(--faint);font-weight:500;font-size:12.5px;text-align:left;padding:10px 8px;text-transform:uppercase;letter-spacing:.06em}
+td{padding:13px 8px;border-top:1px solid var(--line)}
+tr.me td{background:rgba(111,155,255,.12);font-weight:600}
+tr.me td:first-child{box-shadow:inset 3px 0 0 var(--star)}
+.rk{font-family:var(--mono);color:var(--dim)}
+iframe{width:100%;border:0;border-radius:14px;background:#000}
+.err{color:var(--bad);margin-top:10px;font-size:14px}
+.auth{max-width:400px;margin:13vh auto 0;padding:34px 32px}
+.auth .brand{text-align:center;margin-bottom:22px}
+@media(max-width:700px){header.app{padding:0 12px;gap:6px;overflow-x:auto}.brand{display:none}nav.tabs{margin-left:0}.tab{padding:0 10px;font-size:14px}.who{display:none}h1{font-size:30px}.hero{padding:22px 20px}.big b{font-size:52px}.podium{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
 <body>
+<canvas id="skyBg"></canvas><div id="skyGlow"></div><div class="grain"></div>
 <div id="app"></div>
 <script>
 const SUPABASE_URL = 'https://zwaipemeyefkxigohyof.supabase.co';
@@ -39,6 +109,15 @@ const NOTION_URL = ''; // lien public Notion des scripts (à renseigner)
 const MEET_URL = '';   // lien Google Meet fixe (optionnel)
 const GOAL = 50, STREAK_GOAL = 30;
 
+/* fond étoilé */
+(function(){
+  const c = document.getElementById('skyBg'), x = c.getContext('2d'); let W,H,stars=[];
+  const size = () => { W=c.width=innerWidth; H=c.height=innerHeight; stars=Array.from({length:Math.round(W*H/9000)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.2,a:Math.random(),s:Math.random()*.012+.003,d:Math.random()*.08+.01})); };
+  size(); addEventListener('resize',size);
+  const still = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  (function f(){ x.clearRect(0,0,W,H); for(const s of stars){ s.a+=s.s; if(!still) s.y-=s.d*.15; if(s.y<0) s.y=H; x.globalAlpha=.25+.75*Math.abs(Math.sin(s.a)); x.fillStyle='#cfe0ff'; x.beginPath(); x.arc(s.x,s.y,s.r,0,6.283); x.fill(); } if(!still) requestAnimationFrame(f); })();
+})();
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $app = document.getElementById('app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -46,6 +125,8 @@ const ymd = d => { const z = new Date(d.getTime() - d.getTimezoneOffset()*60000)
 const today = () => ymd(new Date());
 const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
 const isWeekday = d => { const w = d.getDay(); return w >= 1 && w <= 5; };
+const initials = n => (String(n||'?').split(/[\s._-]+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
+const nf = n => Number(n).toLocaleString('fr-FR');
 
 let S = { user:null, profile:null, stats:{}, items:[], done:new Set(), lessons:[], ldone:new Set(), tab:'accueil', period:'jour', openLesson:null, editDay:null };
 
@@ -58,10 +139,11 @@ async function init(){
 }
 
 function renderLogin(msg=''){
-  $app.innerHTML = `<main style="max-width:380px;margin-top:10vh"><div class="card"><h2>Espace Cold Callers</h2>
+  $app.innerHTML = `<main><div class="panel auth"><div class="brand"><i></i>COLD CALLING</div>
+  <h2 style="text-align:center;margin-bottom:20px">Connexion</h2>
   <label>E-mail</label><input id="em" type="email" autocomplete="username">
-  <div style="height:10px"></div><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
-  <div style="height:14px"></div><button class="btn pri" id="go" style="width:100%">Connexion</button><div class="err">${esc(msg)}</div></div></main>`;
+  <div style="height:14px"></div><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
+  <div style="height:22px"></div><button class="go" id="go" style="width:100%;height:50px">Se connecter</button><div class="err">${esc(msg)}</div></div></main>`;
   const go = async () => {
     const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('em').value.trim(), password: document.getElementById('pw').value });
     if(error) renderLogin('Identifiants incorrects.'); else init();
@@ -88,8 +170,7 @@ async function loadAll(){
 
 function streak(){
   let n = 0, d = new Date();
-  const t = today();
-  if(isWeekday(d)){ if((S.stats[t]?.answered||0) >= GOAL) n++; }
+  if(isWeekday(d)){ if((S.stats[today()]?.answered||0) >= GOAL) n++; }
   for(let i=0;i<400;i++){
     d.setDate(d.getDate()-1);
     if(!isWeekday(d)) continue;
@@ -100,11 +181,12 @@ function streak(){
 
 function render(){
   const admin = S.profile?.role === 'admin';
-  const tabs = [['accueil','Accueil'],['saisie','Mes stats'],['classement','Classement'],['formation','Formation'],['scripts','Scripts']];
+  const tabs = [['accueil','Aujourd\'hui'],['saisie','Mes stats'],['classement','Classement'],['formation','Formation'],['scripts','Scripts']];
   if(admin) tabs.push(['admin','Admin']);
-  $app.innerHTML = `<header><b>Espace Cold Callers</b><nav class="row">${tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>
-  <button class="btn" id="out">Déconnexion</button></header><main id="view"></main>`;
-  $app.querySelectorAll('nav button').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); });
+  $app.innerHTML = `<header class="app"><div class="brand"><i></i>COLD CALLING</div>
+  <nav class="tabs">${tabs.map(([k,l])=>`<button class="tab ${S.tab===k?'on':''}" data-t="${k}">${l}</button>`).join('')}</nav>
+  <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
+  $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); window.scrollTo(0,0); });
   document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
   ({accueil:vAccueil, saisie:vSaisie, classement:vClassement, formation:vFormation, scripts:vScripts, admin:vAdmin})[S.tab]();
 }
@@ -114,38 +196,50 @@ function vAccueil(){
   const t = S.stats[today()]; const ans = t?.answered||0; const st = streak();
   const pct = Math.min(100, Math.round(ans/GOAL*100));
   const dn = S.items.filter(i=>S.done.has(i.id)).length;
+  const h = new Date().getHours(); const hello = h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
+  const date = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const todo = S.items.filter(i=>!S.done.has(i.id)), fait = S.items.filter(i=>S.done.has(i.id));
+  const row = (i,d) => `<div class="todo ${d?'done':''}"><span class="dot"></span><div class="t"><b>${esc(i.label)}</b></div>${d?'<button class="link" data-u="'+i.id+'">Annuler</button>':'<button class="silver" data-i="'+i.id+'">C\'est fait</button>'}</div>`;
   view().innerHTML = `
-  <div class="card"><h2>Bonjour ${esc(S.profile.name)} 👋</h2>
-    <div class="grid">
-      <div><h3>Objectif du jour</h3><div class="big">${ans} / ${GOAL} décrochés</div><div class="bar"><i style="width:${pct}%"></i></div></div>
-      <div><h3>Série bonus 100 €</h3><div class="big">${Math.min(st,STREAK_GOAL)} / ${STREAK_GOAL} jours</div><div class="bar"><i style="width:${Math.min(100,st/STREAK_GOAL*100)}%"></i></div>
-      <div class="mut" style="font-size:13px;margin-top:4px">Jours ouvrés d'affilée (lun-ven) avec ${GOAL}+ décrochés</div></div>
-    </div></div>
-  <div class="card"><h2>💰 Rémunération</h2>
-    <p style="margin:0 0 6px"><b>3 % de chaque vente signée</b> : panier moyen 1 500 à 3 500 €, soit <b>45 à 105 € (≈ 225 000 à 525 000 Ar)</b> par signature.</p>
-    <p style="margin:0"><b>+100 € (≈ 500 000 Ar)</b> si tu fais ${GOAL} décrochés par jour, du lundi au vendredi, pendant ${STREAK_GOAL} jours d'affilée.</p></div>
-  <div class="card"><h2>🚀 Roadmap d'onboarding <span class="mut">(${dn}/${S.items.length})</span></h2>
-    <div class="bar" style="margin-bottom:8px"><i style="width:${S.items.length?dn/S.items.length*100:0}%"></i></div>
-    ${S.items.map(i=>`<label class="chk" style="color:var(--tx);font-size:15px;margin:0"><input type="checkbox" data-i="${i.id}" ${S.done.has(i.id)?'checked':''}>${esc(i.label)}</label>`).join('')}</div>
-  ${MEET_URL?`<div class="card"><h2>🎥 Salle de motivation</h2><a class="btn" href="${esc(MEET_URL)}" target="_blank" rel="noopener">Rejoindre (caméra uniquement)</a></div>`:''}`;
-  view().querySelectorAll('[data-i]').forEach(c => c.onchange = async () => {
-    const id = +c.dataset.i;
-    if(c.checked){ await sb.from('checklist_done').insert({user_id:S.user.id,item_id:id}); S.done.add(id); }
+  <p class="date">${date.charAt(0).toUpperCase()+date.slice(1)}</p>
+  <h1>${hello} ${esc(S.profile.name)}</h1>
+  <div class="hero"><div class="l"><h3>Ta session d'appels</h3>
+    <div class="big"><b>${ans}</b><span>sur ${GOAL} décrochés aujourd'hui</span></div>
+    <div class="bar ${pct>=100?'ok':''}"><i style="width:${pct}%"></i></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif du jour atteint. Bien joué.':'Encore '+(GOAL-ans)+' décrochés pour atteindre ton objectif.'}</p></div>
+    <button class="go" id="goStats">Saisir mes chiffres</button></div>
+  <div class="grid" style="margin-top:16px">
+    <div class="panel" style="margin:0"><h3>Série bonus 100 €</h3><div class="big"><b style="font-size:44px">${Math.min(st,STREAK_GOAL)}</b><span>/ ${STREAK_GOAL} jours ouvrés</span></div>
+      <div class="bar"><i style="width:${Math.min(100,st/STREAK_GOAL*100)}%"></i></div>
+      <p class="faint" style="margin:10px 0 0;font-size:13.5px">${GOAL}+ décrochés par jour, du lundi au vendredi, sans interruption.</p></div>
+    <div class="panel" style="margin:0"><h3>Rémunération</h3>
+      <p style="margin:0 0 8px"><span class="gold">3 %</span> de chaque vente signée : <b>45 à 105 €</b> par signature, soit environ 225 000 à 525 000 Ar.</p>
+      <p style="margin:0"><span class="gold">+100 €</span> (≈ 500 000 Ar) après ${STREAK_GOAL} jours ouvrés d'affilée à ${GOAL}+ décrochés.</p></div>
+  </div>
+  <div class="sec"><h2>À faire maintenant</h2><span>${todo.length}</span></div>
+  <div>${todo.map(i=>row(i,false)).join('') || '<p class="mut" style="padding:16px 4px;border-top:1px solid var(--line)">Roadmap terminée. 🚀</p>'}</div>
+  ${fait.length?`<div class="sec"><h2>Terminé</h2><span>${dn}/${S.items.length}</span></div><div>${fait.map(i=>row(i,true)).join('')}</div>`:''}
+  ${MEET_URL?`<div class="panel"><h2>Salle de motivation</h2><a class="btn" href="${esc(MEET_URL)}" target="_blank" rel="noopener">Rejoindre (caméra uniquement)</a></div>`:''}`;
+  document.getElementById('goStats').onclick = () => { S.tab='saisie'; S.editDay=null; render(); };
+  const tog = async (id, on) => {
+    if(on){ await sb.from('checklist_done').insert({user_id:S.user.id,item_id:id}); S.done.add(id); }
     else { await sb.from('checklist_done').delete().eq('user_id',S.user.id).eq('item_id',id); S.done.delete(id); }
     vAccueil();
-  });
+  };
+  view().querySelectorAll('[data-i]').forEach(b => b.onclick = () => tog(+b.dataset.i, true));
+  view().querySelectorAll('[data-u]').forEach(b => b.onclick = () => tog(+b.dataset.u, false));
 }
 
 async function vSaisie(){
   const day = S.editDay || today(); const r = S.stats[day] || {};
-  view().innerHTML = `<div class="card"><h2>Mes chiffres du jour</h2>
+  view().innerHTML = `<h1>Mes chiffres</h1><div class="panel" style="margin-top:0"><h2>Saisie du jour</h2>
     <div class="grid"><div><label>Date</label><input type="date" id="d" value="${day}" max="${today()}"></div>
     <div><label>Appels passés</label><input type="number" min="0" id="c" value="${r.calls??''}"></div>
     <div><label>Décrochés</label><input type="number" min="0" id="a" value="${r.answered??''}"></div>
     <div><label>Rendez-vous pris</label><input type="number" min="0" id="m" value="${r.meetings??''}"></div></div>
-    <div style="height:12px"></div><button class="btn pri" id="save">Enregistrer</button> <span id="msg" class="mut"></span></div>
-  <div class="card"><h2>Historique des modifications</h2><div id="hist" class="mut">Chargement…</div></div>
-  <div class="card"><h2>14 derniers jours</h2><div id="last"></div></div>`;
+    <div class="row" style="margin-top:18px"><button class="btn pri" id="save">Enregistrer</button> <span id="msg" class="mut"></span></div></div>
+  <div class="panel"><h2>Historique des modifications</h2><div id="hist" class="mut">Chargement…</div></div>
+  <div class="panel"><h2>14 derniers jours</h2><div id="last"></div></div>`;
   const dEl = document.getElementById('d');
   dEl.onchange = () => { S.editDay = dEl.value; vSaisie(); };
   document.getElementById('save').onclick = async () => {
@@ -164,14 +258,14 @@ async function vSaisie(){
   const lastRender = () => {
     const rows = []; const d = new Date();
     for(let i=0;i<14;i++){ const k = ymd(d); rows.push([k, S.stats[k]]); d.setDate(d.getDate()-1); }
-    document.getElementById('last').innerHTML = `<table><tr><th>Date</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th></th></tr>${rows.map(([k,s])=>`<tr><td>${parse(k).toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td><td>${s?s.calls:'-'}</td><td>${s?s.answered:'-'}</td><td>${s?s.meetings:'-'}</td><td><button class="btn" data-e="${k}">Modifier</button></td></tr>`).join('')}</table>`;
-    document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.editDay = b.dataset.e; vSaisie(); });
+    document.getElementById('last').innerHTML = `<table><tr><th>Date</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th></th></tr>${rows.map(([k,s])=>`<tr><td>${parse(k).toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td><td>${s?s.calls:'-'}</td><td>${s?(s.answered>=GOAL?'<span class="gold">'+s.answered+'</span>':s.answered):'-'}</td><td>${s?s.meetings:'-'}</td><td style="text-align:right"><button class="btn" data-e="${k}" style="height:34px">Modifier</button></td></tr>`).join('')}</table>`;
+    document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.editDay = b.dataset.e; vSaisie(); window.scrollTo(0,0); });
   };
   histLoad(day); lastRender();
 }
 
 async function vClassement(){
-  view().innerHTML = `<div class="card"><div class="row" style="margin-bottom:10px">${[['jour','Aujourd\'hui'],['semaine','Semaine'],['mois','Mois']].map(([k,l])=>`<button class="btn ${S.period===k?'pri':''}" data-p="${k}">${l}</button>`).join('')}</div><div id="rk" class="mut">Chargement…</div></div>`;
+  view().innerHTML = `<h1>Classement</h1><div class="sub">${[['jour','Aujourd\'hui'],['semaine','Semaine'],['mois','Mois']].map(([k,l])=>`<button class="${S.period===k?'on':''}" data-p="${k}">${l}</button>`).join('')}</div><div id="rk" class="mut">Chargement…</div>`;
   view().querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.period = b.dataset.p; vClassement(); });
   const now = new Date(); let from = new Date(now);
   if(S.period==='semaine') from.setDate(now.getDate() - ((now.getDay()+6)%7));
@@ -179,27 +273,44 @@ async function vClassement(){
   const { data, error } = await sb.rpc('get_ranking', { p_from: ymd(from), p_to: ymd(now) });
   if(error) return document.getElementById('rk').textContent = error.message;
   const list = data||[]; const i = list.findIndex(x=>x.user_id===S.user.id);
-  const show = new Set([0,1,2]); if(i>=0){ [i-1,i,i+1].forEach(k=>{ if(k>=0&&k<list.length) show.add(k); }); }
-  const idx = [...show].sort((a,b)=>a-b);
-  let html = '<table><tr><th>#</th><th>Nom</th><th>RDV</th><th>Décrochés</th><th>Appels</th></tr>'; let prev=-1;
-  idx.forEach(k=>{ const r = list[k]; if(prev>=0 && k>prev+1) html += '<tr><td colspan="5" class="mut">…</td></tr>';
-    html += `<tr class="${r.user_id===S.user.id?'me':''}"><td>${r.rank}</td><td>${esc(r.name)}${r.user_id===S.user.id?' (toi)':''}</td><td>${r.meetings}</td><td>${r.answered}</td><td>${r.calls}</td></tr>`; prev=k; });
-  html += '</table>';
-  if(i>0){ const a = list[i-1]; const gap = (a.meetings - list[i].meetings); html += `<p class="mut">Devant toi : ${esc(a.name)} (${gap>0?gap+' RDV d\'écart':'à égalité en RDV, '+(a.answered-list[i].answered)+' décrochés d\'écart'})</p>`; }
-  if(i===0) html += '<p>🏆 Tu es en tête !</p>';
-  document.getElementById('rk').innerHTML = html + '<p class="mut" style="font-size:13px">Classement : rendez-vous pris, puis décrochés.</p>';
+  const me = i>=0 ? list[i] : null;
+  let html = '';
+  if(me){
+    const ahead = i>0 ? list[i-1] : null, behind = i<list.length-1 ? list[i+1] : null;
+    const gapTxt = a => { const g = a.meetings - me.meetings; return g>0 ? `Encore <span class="gold">${g} RDV</span> pour lui passer devant.` : `À égalité en RDV : <span class="gold">${Math.max(1,a.answered-me.answered+1)} décrochés</span> pour le dépasser.`; };
+    html += `<div class="grid" style="grid-template-columns:1.4fr 1fr">
+      <div class="panel hero" style="margin:0;display:block"><div class="row" style="gap:18px;flex-wrap:nowrap"><span class="av lg">${esc(initials(me.name))}</span><div>
+        <h3 style="margin:0">Cold caller</h3><div style="font-size:26px;font-weight:700;letter-spacing:-.03em">${esc(me.name)}</div></div></div>
+        <div class="row" style="margin-top:16px;gap:18px"><span style="font-size:30px;font-weight:700">#${me.rank}</span><span class="mut">sur ${list.length}</span><span><span class="gold" style="font-size:22px">${nf(me.meetings)}</span> <span class="mut">RDV</span></span><span><b>${nf(me.answered)}</b> <span class="mut">décrochés</span></span></div></div>
+      <div class="panel" style="margin:0"><h3>Ta prochaine cible</h3>${ahead?`<div class="row" style="flex-wrap:nowrap;margin:10px 0"><span class="av">${esc(initials(ahead.name))}</span><div><b>${esc(ahead.name)}</b><div class="faint rk">#${ahead.rank} · ${nf(ahead.meetings)} RDV</div></div></div><p style="margin:0 0 8px">${gapTxt(ahead)}</p>`:'<p style="margin:10px 0">🏆 Tu es en tête. Garde la place.</p>'}
+        ${behind?`<p class="faint" style="margin:0;font-size:13.5px">${esc(behind.name)} est à ${Math.max(0,me.meetings-behind.meetings)} RDV derrière toi.</p>`:''}</div></div>`;
+  }
+  const top = list.slice(0,3);
+  if(top.length){
+    const order = top.length===3 ? [1,0,2] : top.map((_,k)=>k);
+    html += `<div class="podium">${order.map(k=>{ const r=top[k]; return `<div class="p ${k===0?'first':''}"><span class="av ${k===0?'lg gold':''}">${esc(initials(r.name))}</span><b>${esc(r.name)}</b><div class="pts">${nf(r.meetings)} <small>RDV</small></div><small>#${r.rank} · ${nf(r.answered)} décrochés</small></div>`; }).join('')}</div>`;
+  }
+  const show = new Set(); if(i>=0){ [i-1,i,i+1].forEach(k=>{ if(k>=0&&k<list.length) show.add(k); }); }
+  const idx = [...show].sort((a,b)=>a-b).filter(k=>k>=3);
+  if(idx.length){
+    html += '<div class="panel"><table><tr><th>#</th><th>Nom</th><th>RDV</th><th>Décrochés</th><th>Appels</th></tr>'; let prev=2;
+    idx.forEach(k=>{ const r = list[k]; if(k>prev+1) html += '<tr><td colspan="5" class="faint" style="text-align:center">···</td></tr>';
+      html += `<tr class="${r.user_id===S.user.id?'me':''}"><td class="rk">${r.rank}</td><td>${esc(r.name)}${r.user_id===S.user.id?' <span class="pill">toi</span>':''}</td><td class="gold">${nf(r.meetings)}</td><td>${nf(r.answered)}</td><td>${nf(r.calls)}</td></tr>`; prev=k; });
+    html += '</table></div>';
+  }
+  document.getElementById('rk').innerHTML = html + '<p class="faint" style="font-size:13px;margin-top:18px">Classement : rendez-vous pris, puis décrochés.</p>';
 }
 
 function vFormation(){
-  if(!S.lessons.length){ view().innerHTML = '<div class="card">Aucune leçon pour le moment.</div>'; return; }
+  if(!S.lessons.length){ view().innerHTML = '<h1>Formation</h1><div class="panel" style="margin-top:0">Aucune leçon pour le moment.</div>'; return; }
   const cur = S.lessons.find(l=>l.id===S.openLesson) || S.lessons[0];
   const dn = S.lessons.filter(l=>S.ldone.has(l.id)).length;
-  view().innerHTML = `<div class="card"><h2>Formation <span class="mut">(${dn}/${S.lessons.length} vues)</span></h2>
-    <div class="grid" style="grid-template-columns:2fr 1fr;align-items:start">
-    <div><iframe style="aspect-ratio:16/9" src="https://www.youtube-nocookie.com/embed/${esc(cur.youtube_id)}?rel=0&modestbranding=1" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>
-    <h3 style="margin-top:10px">${esc(cur.title)}</h3>
-    <label class="chk" style="color:var(--tx);font-size:15px;margin:0"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div>
-    <div>${S.lessons.map(l=>`<div class="chk"><span>${S.ldone.has(l.id)?'✅':'▶️'}</span><a href="#" data-l="${l.id}" style="color:var(--tx);${l.id===cur.id?'font-weight:700':''}">${esc(l.title)}</a></div>`).join('')}</div></div></div>`;
+  view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
+    <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(220px,1fr);align-items:start">
+    <div class="panel" style="margin:0"><iframe style="aspect-ratio:16/9" src="https://www.youtube-nocookie.com/embed/${esc(cur.youtube_id)}?rel=0&modestbranding=1" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    <h2 style="margin:16px 0 10px">${esc(cur.title)}</h2>
+    <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div>
+    <div class="panel" style="margin:0;padding:10px 18px">${S.lessons.map(l=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><a href="#" data-l="${l.id}" style="color:${l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}</div></div>`;
   view().querySelectorAll('[data-l]').forEach(a => a.onclick = e => { e.preventDefault(); S.openLesson = +a.dataset.l; vFormation(); });
   document.getElementById('seen').onchange = async e => {
     if(e.target.checked){ await sb.from('lessons_done').insert({user_id:S.user.id,lesson_id:cur.id}); S.ldone.add(cur.id); }
@@ -210,12 +321,12 @@ function vFormation(){
 
 function vScripts(){
   view().innerHTML = NOTION_URL
-    ? `<div class="card"><div class="row" style="margin-bottom:10px"><h2 style="margin:0">Scripts & objections</h2><a class="btn" href="${esc(NOTION_URL)}" target="_blank" rel="noopener" style="margin-left:auto">Ouvrir en plein écran</a></div><iframe style="height:75vh;background:#fff" src="${esc(NOTION_URL)}"></iframe></div>`
-    : '<div class="card">Les scripts arrivent bientôt.</div>';
+    ? `<div class="row" style="margin-bottom:18px"><h1 style="margin:0">Scripts & objections</h1><a class="btn" href="${esc(NOTION_URL)}" target="_blank" rel="noopener" style="margin-left:auto">Ouvrir en plein écran</a></div><iframe style="height:78vh;background:#fff" src="${esc(NOTION_URL)}"></iframe>`
+    : '<h1>Scripts & objections</h1><div class="panel" style="margin-top:0">Les scripts arrivent bientôt.</div>';
 }
 
 async function vAdmin(){
-  view().innerHTML = '<div class="card">Chargement…</div>';
+  view().innerHTML = '<h1>Admin</h1><div class="panel" style="margin-top:0">Chargement…</div>';
   const from = new Date(); from.setDate(1);
   const [pr, st, cd, ld] = await Promise.all([
     sb.from('profiles').select('*').order('name'),
@@ -226,10 +337,10 @@ async function vAdmin(){
   const rows = (pr.data||[]).filter(p=>p.role==='caller').map(p=>{
     const mine = (st.data||[]).filter(s=>s.user_id===p.id); const sum = k => mine.reduce((a,s)=>a+s[k],0);
     const td = mine.find(s=>s.day===t);
-    return `<tr><td>${esc(p.name)}</td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td>${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
+    return `<tr><td><div class="row" style="flex-wrap:nowrap"><span class="av" style="width:34px;height:34px;font-size:13px;border-radius:10px">${esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td class="gold">${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
   }).join('');
-  view().innerHTML = `<div class="card"><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
-  <p class="mut" style="font-size:13px">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>`;
+  view().innerHTML = `<h1>Admin</h1><div class="panel" style="margin-top:0"><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
+  <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>`;
 }
 
 init();
