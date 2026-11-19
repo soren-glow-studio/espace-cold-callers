@@ -149,6 +149,7 @@ const SUPABASE_KEY = 'sb_publishable_BA9ZVTPRd5fIUZUxFgQesw_LR3JoX9r';
 const NOTION_URL = ''; // lien public Notion des scripts (à renseigner)
 const MEET_URL = '';   // lien Google Meet fixe (optionnel)
 const GOAL = 50, STREAK_GOAL = 30;
+const BUNNY_LIB = '815282'; // bibliothèque Bunny Stream (lecture limitée à ce domaine)
 
 /* fond étoilé */
 (function(){
@@ -159,6 +160,8 @@ const GOAL = 50, STREAK_GOAL = 30;
   (function f(){ x.clearRect(0,0,W,H); for(const s of stars){ s.a+=s.s; if(!still) s.y-=s.d*.15; if(s.y<0) s.y=H; x.globalAlpha=.25+.75*Math.abs(Math.sin(s.a)); x.fillStyle='#cfe0ff'; x.beginPath(); x.arc(s.x,s.y,s.r,0,6.283); x.fill(); } if(!still) requestAnimationFrame(f); })();
 })();
 
+const _H = new URLSearchParams(location.hash.slice(1));
+const AUTH_TYPE = _H.get('type'), AUTH_ERR = _H.get('error_description');
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $app = document.getElementById('app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -173,10 +176,29 @@ let S = { user:null, profile:null, stats:{}, items:[], done:new Set(), lessons:[
 
 async function init(){
   const { data:{ session } } = await sb.auth.getSession();
-  if(!session) return renderLogin();
+  if(!session) return renderLogin(AUTH_ERR ? 'Lien invalide ou expiré. Clique « Mot de passe oublié » pour en recevoir un nouveau.' : '');
   S.user = session.user;
+  if(AUTH_TYPE === 'invite' || AUTH_TYPE === 'recovery') return renderSetPassword();
   await loadAll();
   render();
+}
+
+function renderSetPassword(msg=''){
+  $app.innerHTML = `<main><div class="panel auth"><div class="brand"><i></i>GLOW STUDIO</div>
+  <h2 style="text-align:center;margin-bottom:6px">Choisis ton mot de passe</h2>
+  <p class="mut" style="text-align:center;margin:0 0 20px;font-size:14px">${esc(S.user.email||'')}</p>
+  <label>Nouveau mot de passe (8 caractères minimum)</label><input id="np" type="password" autocomplete="new-password">
+  <div style="height:14px"></div><label>Confirme-le</label><input id="np2" type="password" autocomplete="new-password">
+  <div style="height:22px"></div><button class="go" id="sp" style="width:100%;height:50px">Valider</button><div class="err">${esc(msg)}</div></div></main>`;
+  document.getElementById('sp').onclick = async () => {
+    const a = document.getElementById('np').value, b = document.getElementById('np2').value;
+    if(a.length < 8) return renderSetPassword('8 caractères minimum.');
+    if(a !== b) return renderSetPassword('Les deux mots de passe sont différents.');
+    const { error } = await sb.auth.updateUser({ password: a });
+    if(error) return renderSetPassword('Erreur : ' + error.message);
+    history.replaceState(null, '', location.pathname);
+    await loadAll(); render();
+  };
 }
 
 function renderLogin(msg=''){
@@ -184,7 +206,15 @@ function renderLogin(msg=''){
   <h2 style="text-align:center;margin-bottom:20px">Connexion</h2>
   <label>E-mail</label><input id="em" type="email" autocomplete="username">
   <div style="height:14px"></div><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
-  <div style="height:22px"></div><button class="go" id="go" style="width:100%;height:50px">Se connecter</button><div class="err">${esc(msg)}</div></div></main>`;
+  <div style="height:22px"></div><button class="go" id="go" style="width:100%;height:50px">Se connecter</button>
+  <div style="text-align:center;margin-top:14px"><button class="link" id="forgot">Mot de passe oublié ?</button></div><div class="err" id="lmsg">${esc(msg)}</div></div></main>`;
+  document.getElementById('forgot').onclick = async () => {
+    const em = document.getElementById('em').value.trim();
+    if(!em) return document.getElementById('lmsg').textContent = 'Saisis d\'abord ton e-mail ci-dessus.';
+    const { error } = await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + '/' });
+    const m = document.getElementById('lmsg'); m.style.color = error ? '' : 'var(--ok)';
+    m.textContent = error ? 'Erreur : ' + error.message : 'Si ce compte existe, un e-mail de réinitialisation vient d\'être envoyé.';
+  };
   const go = async () => {
     const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('em').value.trim(), password: document.getElementById('pw').value });
     if(error) renderLogin('Identifiants incorrects.'); else init();
@@ -368,7 +398,7 @@ function vFormation(){
   const dn = S.lessons.filter(l=>S.ldone.has(l.id)).length;
   view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
     <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(220px,1fr);align-items:start">
-    <div class="panel" style="margin:0"><iframe style="aspect-ratio:16/9" src="https://www.youtube-nocookie.com/embed/${esc(cur.youtube_id)}?rel=0&modestbranding=1" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    <div class="panel" style="margin:0"><iframe style="aspect-ratio:16/9" src="${cur.youtube_id.length > 15 ? 'https://iframe.mediadelivery.net/embed/'+BUNNY_LIB+'/'+esc(cur.youtube_id)+'?preload=true' : 'https://www.youtube-nocookie.com/embed/'+esc(cur.youtube_id)+'?rel=0&modestbranding=1'}" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
     <h2 style="margin:16px 0 10px">${esc(cur.title)}</h2>
     <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div>
     <div class="panel" style="margin:0;padding:10px 18px">${S.lessons.map(l=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><a href="#" data-l="${l.id}" style="color:${l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}</div></div>` + toolbox();
