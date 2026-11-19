@@ -240,7 +240,6 @@ async function vSaisie(){
     <div><label>Décrochés</label><input type="number" min="0" id="a" value="${r.answered??''}"></div>
     <div><label>Rendez-vous pris</label><input type="number" min="0" id="m" value="${r.meetings??''}"></div></div>
     <div class="row" style="margin-top:18px"><button class="btn pri" id="save">Enregistrer</button> <span id="msg" class="mut"></span></div></div>
-  <div class="panel"><h2>Historique des modifications</h2><div id="hist" class="mut">Chargement…</div></div>
   <div class="panel"><h2>14 derniers jours</h2><div id="last"></div></div>`;
   const dEl = document.getElementById('d');
   dEl.onchange = () => { S.editDay = dEl.value; vSaisie(); };
@@ -251,11 +250,7 @@ async function vSaisie(){
     if(row.meetings > row.answered) return document.getElementById('msg').textContent = '⚠️ Rendez-vous ne peut pas dépasser les décrochés.';
     const { error } = await sb.from('daily_stats').upsert(row, { onConflict:'user_id,day' });
     if(error) return document.getElementById('msg').textContent = 'Erreur : ' + error.message;
-    S.stats[row.day] = row; document.getElementById('msg').textContent = '✅ Enregistré'; histLoad(row.day); lastRender();
-  };
-  const histLoad = async d => {
-    const { data } = await sb.from('stat_history').select('*').eq('user_id',S.user.id).eq('day',d).order('changed_at',{ascending:false});
-    document.getElementById('hist').innerHTML = (data&&data.length) ? `<table><tr><th>Modifié le</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${data.map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')}</table>` : 'Aucune saisie pour cette date.';
+    S.stats[row.day] = row; document.getElementById('msg').textContent = '✅ Enregistré'; lastRender();
   };
   const lastRender = () => {
     const rows = []; const d = new Date();
@@ -263,7 +258,7 @@ async function vSaisie(){
     document.getElementById('last').innerHTML = `<table><tr><th>Date</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th></th></tr>${rows.map(([k,s])=>`<tr><td>${parse(k).toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td><td>${s?s.calls:'-'}</td><td>${s?(s.answered>=GOAL?'<span class="gold">'+s.answered+'</span>':s.answered):'-'}</td><td>${s?s.meetings:'-'}</td><td style="text-align:right"><button class="btn" data-e="${k}" style="height:34px">Modifier</button></td></tr>`).join('')}</table>`;
     document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.editDay = b.dataset.e; vSaisie(); window.scrollTo(0,0); });
   };
-  histLoad(day); lastRender();
+  lastRender();
 }
 
 async function vClassement(){
@@ -330,11 +325,13 @@ function vScripts(){
 async function vAdmin(){
   view().innerHTML = '<h1>Admin</h1><div class="panel" style="margin-top:0">Chargement…</div>';
   const from = new Date(); from.setDate(1);
-  const [pr, st, cd, ld] = await Promise.all([
+  const [pr, st, cd, ld, hs] = await Promise.all([
     sb.from('profiles').select('*').order('name'),
     sb.from('daily_stats').select('*').gte('day', ymd(from)),
-    sb.from('checklist_done').select('user_id'), sb.from('lessons_done').select('user_id')
+    sb.from('checklist_done').select('user_id'), sb.from('lessons_done').select('user_id'),
+    sb.from('stat_history').select('*').order('changed_at',{ascending:false}).limit(100)
   ]);
+  const nameOf = id => (pr.data||[]).find(p=>p.id===id)?.name || '?';
   const t = today();
   const rows = (pr.data||[]).filter(p=>p.role==='caller').map(p=>{
     const mine = (st.data||[]).filter(s=>s.user_id===p.id); const sum = k => mine.reduce((a,s)=>a+s[k],0);
@@ -342,7 +339,8 @@ async function vAdmin(){
     return `<tr><td><div class="row" style="flex-wrap:nowrap"><span class="av" style="width:34px;height:34px;font-size:13px;border-radius:10px">${esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td class="gold">${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
   }).join('');
   view().innerHTML = `<h1>Admin</h1><div class="panel" style="margin-top:0"><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
-  <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>`;
+  <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>
+  <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>`;
 }
 
 init();
