@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Espace Cold Callers</title>
+<title>Glow Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -141,7 +141,7 @@ async function init(){
 }
 
 function renderLogin(msg=''){
-  $app.innerHTML = `<main><div class="panel auth"><div class="brand"><i></i>COLD CALLING</div>
+  $app.innerHTML = `<main><div class="panel auth"><div class="brand"><i></i>GLOW STUDIO</div>
   <h2 style="text-align:center;margin-bottom:20px">Connexion</h2>
   <label>E-mail</label><input id="em" type="email" autocomplete="username">
   <div style="height:14px"></div><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
@@ -185,7 +185,7 @@ function render(){
   const admin = S.profile?.role === 'admin';
   const tabs = [['accueil','Aujourd\'hui'],['saisie','Mes stats'],['classement','Classement'],['formation','Formation'],['scripts','Scripts']];
   if(admin) tabs.push(['admin','Admin']);
-  $app.innerHTML = `<header class="app"><div class="brand"><i></i>COLD CALLING</div>
+  $app.innerHTML = `<header class="app"><div class="brand"><i></i>GLOW STUDIO</div>
   <nav class="tabs">${tabs.map(([k,l])=>`<button class="tab ${S.tab===k?'on':''}" data-t="${k}">${l}</button>`).join('')}</nav>
   <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
   $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); window.scrollTo(0,0); });
