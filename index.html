@@ -74,6 +74,8 @@ h3{margin:0 0 6px;font-size:13.5px;font-weight:500;color:var(--dim)}
 .todo.done .dot{background:var(--ok);box-shadow:0 0 10px rgba(78,205,142,.6)}.todo.done .t b{color:var(--faint);text-decoration:line-through;font-weight:500}
 .gold{color:var(--champ);font-weight:700}
 .eur{color:var(--dim);font-size:14px;font-weight:500}
+a.tool{display:block;margin:0;text-decoration:none;color:#fff;transition:border-color var(--t),transform var(--t)}
+a.tool:hover{border-color:var(--line3);transform:translateY(-2px)}
 .pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
 .amt{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.2}.amt .eur{font-size:16px}
 .pay p{margin:6px 0 0;font-size:14px}
@@ -111,7 +113,16 @@ iframe{width:100%;border:0;border-radius:14px;background:#000}
 .err{color:var(--bad);margin-top:10px;font-size:14px}
 .auth{max-width:400px;margin:13vh auto 0;padding:34px 32px}
 .auth .brand{text-align:center;margin-bottom:22px}
-@media(max-width:700px){header.app{padding:0 12px;gap:6px;overflow-x:auto}.brand{display:none}nav.tabs{margin-left:0}.tab{padding:0 10px;font-size:14px}.who{display:none}h1{font-size:30px}.hero{padding:22px 20px}.big b{font-size:52px}.podium{grid-template-columns:1fr 1fr 1fr}}
+.tab .ic,.tab .sh{display:none}
+@media(max-width:760px){
+  header.app{padding:0 16px;backdrop-filter:none;background:rgba(6,9,18,.96);justify-content:space-between}
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:30;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);justify-content:space-around;gap:0;background:rgba(8,12,24,.96);backdrop-filter:blur(16px);border-top:1px solid var(--line2);flex:none}
+  .tab{flex:1;min-width:0;height:62px;padding:6px 2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10.5px;font-weight:600}
+  .tab .ic{display:block;width:22px;height:22px}.tab .lg{display:none}.tab .sh{display:block}
+  .tab.on{color:var(--star)}.tab.on::after{left:25%;right:25%;top:-1px;bottom:auto}
+  main{padding:22px 16px calc(100px + env(safe-area-inset-bottom))}
+  h1{font-size:30px}.hero{padding:22px 20px}.big b{font-size:52px}.podium{grid-template-columns:1fr 1fr 1fr}.who{display:none}
+}
 </style>
 </head>
 <body>
@@ -196,10 +207,17 @@ function streak(){
 
 function render(){
   const admin = S.profile?.role === 'admin';
-  const tabs = [['accueil','Aujourd\'hui'],['saisie','Mes stats'],['classement','Classement'],['formation','Formation'],['scripts','Scripts']];
-  if(admin) tabs.push(['admin','Admin']);
+  const ic = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const tabs = [
+    ['accueil','Aujourd\'hui','Accueil',ic('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>')],
+    ['formation','Formation','Formation',ic('<circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/>')],
+    ['scripts','Scripts','Scripts',ic('<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/>')],
+    ['saisie','Mes stats','Stats',ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
+    ['classement','Classement','Classement',ic('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3"/>')]
+  ];
+  if(admin) tabs.push(['admin','Admin','Admin',ic('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')]);
   $app.innerHTML = `<header class="app"><div class="brand"><i></i>GLOW STUDIO</div>
-  <nav class="tabs">${tabs.map(([k,l])=>`<button class="tab ${S.tab===k?'on':''}" data-t="${k}">${l}</button>`).join('')}</nav>
+  <nav class="tabs">${tabs.map(([k,l,s,i])=>`<button class="tab ${S.tab===k?'on':''}" data-t="${k}">${i}<span class="lg">${l}</span><span class="sh">${s}</span></button>`).join('')}</nav>
   <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
   $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); window.scrollTo(0,0); });
   document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
@@ -225,7 +243,11 @@ function vAccueil(){
     <button class="go" id="goStats">Saisir mes chiffres</button></div>
   <div class="panel"><h2>Rémunération</h2>
     <div class="pay"><div><h3>Base</h3><div class="amt"><span class="gold">50 000 Ar</span> <span class="eur">(10 €)</span></div><p class="faint">par rendez-vous pris</p></div>
-      <div><h3>Commission</h3><div class="amt"><span class="gold">3 %</span> <span class="eur">de chaque vente signée</span></div><p class="faint">soit <span class="gold">225 000 à 525 000 Ar</span> <span class="eur">(45 à 105 €)</span> par signature</p></div></div></div>
+    </div></div>
+  <div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
+    <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Commission sur vente signée</h2>
+      <p style="margin:0;color:#e9dcb8"><b style="color:#ffe9a8">3 %</b> de chaque vente signée.</p></div>
+    <div style="text-align:right"><div class="bamt">225 000 à 525 000 Ar</div><div class="eur">(45 à 105 €) par signature</div></div></div></div>
   <div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
     <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Série de ${STREAK_GOAL} jours</h2>
       <p style="margin:0;color:#e9dcb8">${GOAL}+ décrochés par jour, du lundi au vendredi, ${STREAK_GOAL} jours ouvrés d'affilée.</p></div>
@@ -317,8 +339,16 @@ async function vClassement(){
   document.getElementById('rk').innerHTML = html + '<p class="faint" style="font-size:13px;margin-top:18px">Classement : rendez-vous pris, puis décrochés.</p>';
 }
 
+const TOOLS = [
+  ['Script de vente','Google Docs','https://docs.google.com/document/d/1-gx-zdofkpam1GWJ0zmfKzD_UzWhuTHACK7C-jbG3Z8/edit?usp=sharing'],
+  ['CRM · Leadsourcing','Google Sheets','https://docs.google.com/spreadsheets/d/1uOiQ0DsnzCCnD7Cyk70smiWBfBJ9FVu0yRSitloX-lI/edit?usp=sharing'],
+  ['CRM · Tracking','Google Sheets','https://docs.google.com/spreadsheets/d/1138atNq__WcVzng0azTiAmAOqE-zgWvX0nm1h5gAfx4/edit?usp=sharing']
+];
+const toolbox = () => `<div class="sec" style="margin-top:40px"><h2>Boîte à outils</h2><span class="pill">Dernier module</span></div>
+  <div class="grid" style="margin-top:12px">${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
+
 function vFormation(){
-  if(!S.lessons.length){ view().innerHTML = '<h1>Formation</h1><div class="panel" style="margin-top:0">Aucune leçon pour le moment.</div>'; return; }
+  if(!S.lessons.length){ view().innerHTML = '<h1>Formation</h1><div class="panel" style="margin-top:0">Aucune leçon pour le moment.</div>' + toolbox(); return; }
   const cur = S.lessons.find(l=>l.id===S.openLesson) || S.lessons[0];
   const dn = S.lessons.filter(l=>S.ldone.has(l.id)).length;
   view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
@@ -326,7 +356,7 @@ function vFormation(){
     <div class="panel" style="margin:0"><iframe style="aspect-ratio:16/9" src="https://www.youtube-nocookie.com/embed/${esc(cur.youtube_id)}?rel=0&modestbranding=1" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>
     <h2 style="margin:16px 0 10px">${esc(cur.title)}</h2>
     <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div>
-    <div class="panel" style="margin:0;padding:10px 18px">${S.lessons.map(l=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><a href="#" data-l="${l.id}" style="color:${l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}</div></div>`;
+    <div class="panel" style="margin:0;padding:10px 18px">${S.lessons.map(l=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><a href="#" data-l="${l.id}" style="color:${l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}</div></div>` + toolbox();
   view().querySelectorAll('[data-l]').forEach(a => a.onclick = e => { e.preventDefault(); S.openLesson = +a.dataset.l; vFormation(); });
   document.getElementById('seen').onchange = async e => {
     if(e.target.checked){ await sb.from('lessons_done').insert({user_id:S.user.id,lesson_id:cur.id}); S.ldone.add(cur.id); }
