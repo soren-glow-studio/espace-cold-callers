@@ -180,6 +180,8 @@ async function init(){
   S.user = session.user;
   if(AUTH_TYPE === 'invite' || AUTH_TYPE === 'recovery') return renderSetPassword();
   await loadAll();
+  const ht = location.hash.slice(1);
+  if(['accueil','formation','saisie','classement','profil'].includes(ht) || (ht === 'admin' && S.profile?.role === 'admin')) S.tab = ht;
   render();
 }
 
@@ -264,7 +266,7 @@ function render(){
   $app.innerHTML = `<header class="app"><div class="brand"><i></i>GLOW STUDIO</div>
   <nav class="tabs">${tabs.map(([k,l,s,i])=>`<button class="tab ${S.tab===k?'on':''}" data-t="${k}">${i}<span class="lg">${l}</span><span class="sh">${s}</span></button>`).join('')}</nav>
   <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
-  $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); window.scrollTo(0,0); });
+  $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; history.replaceState(null, '', '#' + S.tab); render(); window.scrollTo(0,0); });
   document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
   ({accueil:vAccueil, saisie:vSaisie, classement:vClassement, formation:vFormation, profil:vProfil, admin:vAdmin})[S.tab]();
 }
@@ -433,7 +435,10 @@ async function vProfil(){
 }
 
 async function vAdmin(){
+  if(S.profile?.role !== 'admin'){ S.tab = 'accueil'; return render(); }
   view().innerHTML = '<h1>Admin</h1><div class="panel" style="margin-top:0">Chargement…</div>';
+  const { data: links } = await sb.from('admin_links').select('*').order('position');
+  const linksHtml = (links||[]).length ? `<div class="panel" style="margin-top:0"><h2>Accès rapides</h2><div class="grid" style="margin-top:6px">${links.map(l=>`<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener" style="justify-content:flex-start;height:auto;min-height:44px;padding:10px 14px;text-align:left;text-decoration:none">${esc(l.label)} ↗</a>`).join('')}</div></div>` : '';
   const from = new Date(); from.setDate(1);
   const [pr, st, cd, ld, hs, pa] = await Promise.all([
     sb.from('profiles').select('*').order('name'),
@@ -449,7 +454,7 @@ async function vAdmin(){
     const td = mine.find(s=>s.day===t);
     return `<tr><td><div class="row" style="flex-wrap:nowrap"><span class="av" style="width:34px;height:34px;font-size:13px;border-radius:10px">${esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td class="gold">${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
   }).join('');
-  view().innerHTML = `<h1>Admin</h1><div class="panel" style="margin-top:0"><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
+  view().innerHTML = `<h1>Admin</h1>${linksHtml}<div class="panel" ${linksHtml?'':'style="margin-top:0"'}><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
   <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>
   <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>
   <div class="panel"><h2>Profils des cold callers</h2>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const a=(pa.data||[]).find(x=>x.user_id===p.id); return `<details class="ans"><summary>${esc(p.name)} <span class="faint" style="font-weight:400">${a?'· rempli le '+new Date(a.updated_at).toLocaleDateString('fr-FR'):'· pas encore rempli'}</span></summary>${a?`<dl>${PFIELDS.map(([k,l])=>`<dt>${l}</dt><dd>${esc(a[k]||'—')}</dd>`).join('')}</dl>`:''}</details>`; }).join('') || '<p class="faint">Aucun cold caller.</p>'}</div>`;
