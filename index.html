@@ -74,6 +74,21 @@ h3{margin:0 0 6px;font-size:13.5px;font-weight:500;color:var(--dim)}
 .todo.done .dot{background:var(--ok);box-shadow:0 0 10px rgba(78,205,142,.6)}.todo.done .t b{color:var(--faint);text-decoration:line-through;font-weight:500}
 .gold{color:var(--champ);font-weight:700}
 .eur{color:var(--dim);font-size:14px;font-weight:500}
+.secdate{margin:22px 0 4px;font-size:13px;font-weight:600;color:var(--champ);text-transform:uppercase;letter-spacing:.08em}
+.todolist{border-top:1px solid var(--line)}
+.chkrow{display:flex;align-items:center;gap:14px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;margin:0;color:#fff;font-size:16px;font-weight:500;transition:background var(--t)}
+.chkrow:hover{background:rgba(255,255,255,.03)}
+.chkrow input{position:absolute;opacity:0;pointer-events:none}
+.chkrow .box{width:22px;height:22px;border-radius:6px;border:1.6px solid var(--line3);flex:none;display:grid;place-items:center;transition:all var(--t)}
+.chkrow input:checked+.box{background:var(--star);border-color:var(--star);box-shadow:0 0 12px rgba(111,155,255,.5)}
+.chkrow input:checked+.box::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.2px 2.2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chkrow.done .lbl{color:var(--faint);text-decoration:line-through}
+.chkrow input:focus-visible+.box{outline:2px solid var(--star);outline-offset:2px}
+textarea{width:100%;min-height:96px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line2);background:rgba(6,9,18,.6);color:#fff;font:500 15px/1.5 var(--ui);outline:none;resize:vertical}
+textarea:focus{border-color:var(--star);box-shadow:0 0 0 3px rgba(111,155,255,.18)}
+.note{display:flex;gap:12px;padding:14px 16px;border-radius:12px;border:1px solid rgba(111,155,255,.35);background:rgba(111,155,255,.08);color:var(--plat);font-size:14.5px;margin:0 0 18px}
+details.ans{border-top:1px solid var(--line);padding:12px 0}details.ans summary{cursor:pointer;font-weight:600}
+details.ans dl{margin:12px 0 0}details.ans dt{color:var(--faint);font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:12px}details.ans dd{margin:4px 0 0;white-space:pre-wrap}
 a.tool{display:block;margin:0;text-decoration:none;color:#fff;transition:border-color var(--t),transform var(--t)}
 a.tool:hover{border-color:var(--line3);transform:translateY(-2px)}
 .pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
@@ -211,9 +226,9 @@ function render(){
   const tabs = [
     ['accueil','Aujourd\'hui','Accueil',ic('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>')],
     ['formation','Formation','Formation',ic('<circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/>')],
-    ['scripts','Scripts','Scripts',ic('<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/>')],
     ['saisie','Mes stats','Stats',ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
-    ['classement','Classement','Classement',ic('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3"/>')]
+    ['classement','Classement','Classement',ic('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3"/>')],
+    ['profil','Mon profil','Profil',ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')]
   ];
   if(admin) tabs.push(['admin','Admin','Admin',ic('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')]);
   $app.innerHTML = `<header class="app"><div class="brand"><i></i>GLOW STUDIO</div>
@@ -221,7 +236,7 @@ function render(){
   <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
   $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); window.scrollTo(0,0); });
   document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
-  ({accueil:vAccueil, saisie:vSaisie, classement:vClassement, formation:vFormation, scripts:vScripts, admin:vAdmin})[S.tab]();
+  ({accueil:vAccueil, saisie:vSaisie, classement:vClassement, formation:vFormation, profil:vProfil, admin:vAdmin})[S.tab]();
 }
 const view = () => document.getElementById('view');
 
@@ -231,8 +246,8 @@ function vAccueil(){
   const dn = S.items.filter(i=>S.done.has(i.id)).length;
   const h = new Date().getHours(); const hello = h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
   const date = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  const todo = S.items.filter(i=>!S.done.has(i.id)), fait = S.items.filter(i=>S.done.has(i.id));
-  const row = (i,d) => `<div class="todo ${d?'done':''}"><span class="dot"></span><div class="t"><b>${esc(i.label)}</b></div>${d?'<button class="link" data-u="'+i.id+'">Annuler</button>':'<button class="silver" data-i="'+i.id+'">C\'est fait</button>'}</div>`;
+  const secs = []; S.items.forEach(i => { const k = i.section || 'À faire'; let s = secs.find(x=>x.k===k); if(!s){ s = {k, items:[]}; secs.push(s); } s.items.push(i); });
+  const row = i => { const d = S.done.has(i.id); return `<label class="chkrow ${d?'done':''}"><input type="checkbox" data-i="${i.id}" ${d?'checked':''}><span class="box"></span><span class="lbl">${esc(i.label)}</span></label>`; };
   view().innerHTML = `
   <p class="date">${date.charAt(0).toUpperCase()+date.slice(1)}</p>
   <h1>${hello} ${esc(S.profile.name)}</h1>
@@ -246,7 +261,7 @@ function vAccueil(){
     </div></div>
   <div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
     <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Commission sur vente signée</h2>
-      <p style="margin:0;color:#e9dcb8"><b style="color:#ffe9a8">3 %</b> de chaque vente signée.</p></div>
+      <p style="margin:0;color:#e9dcb8"><b style="color:#ffe9a8">3 %</b> de chaque vente signée provenant de vos RDV.</p></div>
     <div style="text-align:right"><div class="bamt">225 000 à 525 000 Ar</div><div class="eur">(45 à 105 €) par signature</div></div></div></div>
   <div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
     <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Série de ${STREAK_GOAL} jours</h2>
@@ -254,9 +269,9 @@ function vAccueil(){
     <div style="text-align:right"><div class="bamt">500 000 Ar</div><div class="eur">(100 €)</div></div></div>
     <div class="big" style="margin-top:20px"><b style="font-size:40px;color:#ffe9a8">${Math.min(st,STREAK_GOAL)}</b><span style="color:#e9dcb8">/ ${STREAK_GOAL} jours</span></div>
     <div class="bar gbar"><i style="width:${Math.min(100,st/STREAK_GOAL*100)}%"></i></div></div>
-  <div class="sec"><h2>À faire maintenant</h2><span>${todo.length}</span></div>
-  <div>${todo.map(i=>row(i,false)).join('') || '<p class="mut" style="padding:16px 4px;border-top:1px solid var(--line)">Roadmap terminée. 🚀</p>'}</div>
-  ${fait.length?`<div class="sec"><h2>Terminé</h2><span>${dn}/${S.items.length}</span></div><div>${fait.map(i=>row(i,true)).join('')}</div>`:''}
+  <div class="sec"><h2>Ta roadmap</h2><span>${dn}/${S.items.length}</span></div>
+  <div class="bar" style="margin:10px 0 6px"><i style="width:${S.items.length?dn/S.items.length*100:0}%"></i></div>
+  ${secs.map(s=>`<h3 class="secdate">${esc(s.k)}</h3><div class="todolist">${s.items.map(row).join('')}</div>`).join('') || '<p class="mut">Aucune étape pour le moment.</p>'}
   ${MEET_URL?`<div class="panel"><h2>Salle de motivation</h2><a class="btn" href="${esc(MEET_URL)}" target="_blank" rel="noopener">Rejoindre (caméra uniquement)</a></div>`:''}`;
   document.getElementById('goStats').onclick = () => { S.tab='saisie'; S.editDay=null; render(); };
   const tog = async (id, on) => {
@@ -264,8 +279,7 @@ function vAccueil(){
     else { await sb.from('checklist_done').delete().eq('user_id',S.user.id).eq('item_id',id); S.done.delete(id); }
     vAccueil();
   };
-  view().querySelectorAll('[data-i]').forEach(b => b.onclick = () => tog(+b.dataset.i, true));
-  view().querySelectorAll('[data-u]').forEach(b => b.onclick = () => tog(+b.dataset.u, false));
+  view().querySelectorAll('[data-i]').forEach(c => c.onchange = () => tog(+c.dataset.i, c.checked));
 }
 
 async function vSaisie(){
@@ -344,7 +358,8 @@ const TOOLS = [
   ['CRM · Leadsourcing','Google Sheets','https://docs.google.com/spreadsheets/d/1uOiQ0DsnzCCnD7Cyk70smiWBfBJ9FVu0yRSitloX-lI/edit?usp=sharing'],
   ['CRM · Tracking','Google Sheets','https://docs.google.com/spreadsheets/d/1138atNq__WcVzng0azTiAmAOqE-zgWvX0nm1h5gAfx4/edit?usp=sharing']
 ];
-const toolbox = () => `<div class="sec" style="margin-top:40px"><h2>Boîte à outils</h2><span class="pill">Dernier module</span></div>
+const scriptsMod = () => NOTION_URL ? `<div class="sec" style="margin-top:40px"><h2>Scripts</h2><a class="btn" href="${esc(NOTION_URL)}" target="_blank" rel="noopener" style="margin-left:auto">Plein écran</a></div><iframe style="height:70vh;background:#fff;margin-top:12px" src="${esc(NOTION_URL)}"></iframe>` : '';
+const toolbox = () => scriptsMod() + `<div class="sec" style="margin-top:40px"><h2>Boîte à outils</h2><span class="pill">Dernier module</span></div>
   <div class="grid" style="margin-top:12px">${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
 
 function vFormation(){
@@ -365,20 +380,37 @@ function vFormation(){
   };
 }
 
-function vScripts(){
-  view().innerHTML = NOTION_URL
-    ? `<div class="row" style="margin-bottom:18px"><h1 style="margin:0">Scripts & objections</h1><a class="btn" href="${esc(NOTION_URL)}" target="_blank" rel="noopener" style="margin-left:auto">Ouvrir en plein écran</a></div><iframe style="height:78vh;background:#fff" src="${esc(NOTION_URL)}"></iframe>`
-    : '<h1>Scripts & objections</h1><div class="panel" style="margin-top:0">Les scripts arrivent bientôt.</div>';
+const PFIELDS = [
+  ['strengths_perso','Mes forces (personnelles)'],['weaknesses_perso','Mes faiblesses (personnelles)'],
+  ['strengths_cc','Mes forces en cold calling'],['weaknesses_cc','Mes faiblesses en cold calling'],
+  ['goals_30d','Mes objectifs à 30 jours'],['goals_3m','Mes objectifs à 3 mois']
+];
+
+async function vProfil(){
+  view().innerHTML = '<h1>Mon profil</h1><div class="panel" style="margin-top:0">Chargement…</div>';
+  const { data } = await sb.from('profile_answers').select('*').eq('user_id', S.user.id).maybeSingle();
+  const a = data || {};
+  view().innerHTML = `<h1>Mon profil</h1>
+  <div class="note"><span>🔒</span><span>Ce que tu écris ici n'influence <b>en rien</b> ta période d'essai. C'est uniquement pour adapter les retours et les feedbacks qu'on te donne à ton profil.</span></div>
+  <div class="panel" style="margin-top:0">${PFIELDS.map(([k,l])=>`<div style="margin-bottom:18px"><label>${l}</label><textarea id="pf_${k}">${esc(a[k]||'')}</textarea></div>`).join('')}
+    <div class="row"><button class="btn pri" id="pfSave">Enregistrer</button><span id="pfMsg" class="mut"></span></div></div>`;
+  document.getElementById('pfSave').onclick = async () => {
+    const row = { user_id:S.user.id, updated_at:new Date().toISOString() };
+    PFIELDS.forEach(([k]) => row[k] = document.getElementById('pf_'+k).value.trim());
+    const { error } = await sb.from('profile_answers').upsert(row, { onConflict:'user_id' });
+    document.getElementById('pfMsg').textContent = error ? 'Erreur : ' + error.message : '✅ Enregistré';
+  };
 }
 
 async function vAdmin(){
   view().innerHTML = '<h1>Admin</h1><div class="panel" style="margin-top:0">Chargement…</div>';
   const from = new Date(); from.setDate(1);
-  const [pr, st, cd, ld, hs] = await Promise.all([
+  const [pr, st, cd, ld, hs, pa] = await Promise.all([
     sb.from('profiles').select('*').order('name'),
     sb.from('daily_stats').select('*').gte('day', ymd(from)),
     sb.from('checklist_done').select('user_id'), sb.from('lessons_done').select('user_id'),
-    sb.from('stat_history').select('*').order('changed_at',{ascending:false}).limit(100)
+    sb.from('stat_history').select('*').order('changed_at',{ascending:false}).limit(100),
+    sb.from('profile_answers').select('*')
   ]);
   const nameOf = id => (pr.data||[]).find(p=>p.id===id)?.name || '?';
   const t = today();
@@ -389,7 +421,8 @@ async function vAdmin(){
   }).join('');
   view().innerHTML = `<h1>Admin</h1><div class="panel" style="margin-top:0"><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
   <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>
-  <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>`;
+  <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>
+  <div class="panel"><h2>Profils des cold callers</h2>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const a=(pa.data||[]).find(x=>x.user_id===p.id); return `<details class="ans"><summary>${esc(p.name)} <span class="faint" style="font-weight:400">${a?'· rempli le '+new Date(a.updated_at).toLocaleDateString('fr-FR'):'· pas encore rempli'}</span></summary>${a?`<dl>${PFIELDS.map(([k,l])=>`<dt>${l}</dt><dd>${esc(a[k]||'—')}</dd>`).join('')}</dl>`:''}</details>`; }).join('') || '<p class="faint">Aucun cold caller.</p>'}</div>`;
 }
 
 init();
