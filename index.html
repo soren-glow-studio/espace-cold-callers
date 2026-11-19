@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Espace Callers</title>
+<title>Espace Cold Callers</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#0f1115;--card:#181b22;--line:#262a34;--tx:#e8eaf0;--mut:#8a90a2;--ac:#4f8cff;--ok:#2fbf71;--warn:#f0b429}
@@ -58,7 +58,7 @@ async function init(){
 }
 
 function renderLogin(msg=''){
-  $app.innerHTML = `<main style="max-width:380px;margin-top:10vh"><div class="card"><h2>Espace Callers</h2>
+  $app.innerHTML = `<main style="max-width:380px;margin-top:10vh"><div class="card"><h2>Espace Cold Callers</h2>
   <label>E-mail</label><input id="em" type="email" autocomplete="username">
   <div style="height:10px"></div><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
   <div style="height:14px"></div><button class="btn pri" id="go" style="width:100%">Connexion</button><div class="err">${esc(msg)}</div></div></main>`;
@@ -102,7 +102,7 @@ function render(){
   const admin = S.profile?.role === 'admin';
   const tabs = [['accueil','Accueil'],['saisie','Mes stats'],['classement','Classement'],['formation','Formation'],['scripts','Scripts']];
   if(admin) tabs.push(['admin','Admin']);
-  $app.innerHTML = `<header><b>Espace Callers</b><nav class="row">${tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>
+  $app.innerHTML = `<header><b>Espace Cold Callers</b><nav class="row">${tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>
   <button class="btn" id="out">Déconnexion</button></header><main id="view"></main>`;
   $app.querySelectorAll('nav button').forEach(b => b.onclick = () => { S.tab = b.dataset.t; render(); });
   document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
@@ -228,8 +228,8 @@ async function vAdmin(){
     const td = mine.find(s=>s.day===t);
     return `<tr><td>${esc(p.name)}</td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td>${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
   }).join('');
-  view().innerHTML = `<div class="card"><h2>Callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun caller.</td></tr>'}</table></div>
-  <p class="mut" style="font-size:13px">Ajout d'un caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>`;
+  view().innerHTML = `<div class="card"><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
+  <p class="mut" style="font-size:13px">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>`;
 }
 
 init();
