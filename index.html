@@ -150,7 +150,7 @@ const SUPABASE_URL = 'https://zwaipemeyefkxigohyof.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BA9ZVTPRd5fIUZUxFgQesw_LR3JoX9r';
 const NOTION_URL = ''; // lien public Notion des scripts (à renseigner)
 const MEET_URL = '';   // lien Google Meet fixe (optionnel)
-const GOAL = 50, STREAK_GOAL = 30;
+const GOAL = 50, GOAL_RDV = 5, STREAK_GOAL = 30;
 const BUNNY_LIB = '815282'; // bibliothèque Bunny Stream (lecture limitée à ce domaine)
 
 /* fond étoilé */
@@ -283,6 +283,7 @@ const view = () => document.getElementById('view');
 function vAccueil(){
   const t = S.stats[today()]; const ans = t?.answered||0; const st = streak();
   const pct = Math.min(100, Math.round(ans/GOAL*100));
+  const mt = t?.meetings||0; const mpct = Math.min(100, Math.round(mt/GOAL_RDV*100));
   const dn = S.items.filter(i=>S.done.has(i.id)).length;
   const h = new Date().getHours(); const hello = h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
   const date = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -294,7 +295,10 @@ function vAccueil(){
   <div class="hero"><div class="l"><h3>Ta session d'appels</h3>
     <div class="big"><b>${ans}</b><span>sur ${GOAL} décrochés aujourd'hui</span></div>
     <div class="bar ${pct>=100?'ok':''}"><i style="width:${pct}%"></i></div>
-    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif du jour atteint. Bien joué.':'Encore '+(GOAL-ans)+' décrochés pour atteindre ton objectif.'}</p></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif du jour atteint. Bien joué.':'Encore '+(GOAL-ans)+' décrochés pour atteindre ton objectif.'}</p>
+    <div class="big" style="margin-top:22px"><b>${mt}</b><span>sur ${GOAL_RDV} rendez-vous pris aujourd'hui</span></div>
+    <div class="bar ${mpct>=100?'ok':''}"><i style="width:${mpct}%"></i></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${mpct>=100?'Objectif rendez-vous atteint. Bravo.':'Encore '+(GOAL_RDV-mt)+' rendez-vous pour atteindre ton objectif.'}</p></div>
     <button class="go" id="goStats">Saisir mes chiffres</button></div>
   ${(()=>{ const ti = trialInfo(S.profile.trial_start); let inner;
     if(!ti) inner = '<p class="mut" style="margin:10px 0 0">Ta date de début n’a pas encore été fixée.</p>';
