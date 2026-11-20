@@ -244,6 +244,12 @@ async function loadAll(){
   S.lessons = ls.data||[]; S.ldone = new Set((ld.data||[]).map(r=>r.lesson_id));
 }
 
+function trialInfo(ts){
+  if(!ts) return null;
+  const el = Math.round((parse(today()) - parse(ts)) / 864e5);
+  return { el, day: el+1, left: Math.max(0, 30-el-1), start: ts };
+}
+
 function streak(){
   let n = 0, d = new Date();
   if(isWeekday(d)){ if((S.stats[today()]?.answered||0) >= GOAL) n++; }
@@ -290,6 +296,12 @@ function vAccueil(){
     <div class="bar ${pct>=100?'ok':''}"><i style="width:${pct}%"></i></div>
     <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif du jour atteint. Bien joué.':'Encore '+(GOAL-ans)+' décrochés pour atteindre ton objectif.'}</p></div>
     <button class="go" id="goStats">Saisir mes chiffres</button></div>
+  ${(()=>{ const ti = trialInfo(S.profile.trial_start); let inner;
+    if(!ti) inner = '<p class="mut" style="margin:10px 0 0">Ta date de début n’a pas encore été fixée.</p>';
+    else if(ti.el < 0) inner = `<p style="margin:10px 0 0">Ta période d'essai commence le <b>${parse(ti.start).toLocaleDateString('fr-FR')}</b>.</p>`;
+    else if(ti.day > 30) inner = '<p style="margin:10px 0 0">Ta période d’essai de 30 jours est terminée.</p>';
+    else inner = `<div class="big" style="margin-top:10px"><b>Jour ${ti.day}</b><span>sur 30 · ${ti.left===0?'dernier jour':'il reste '+ti.left+' jour'+(ti.left>1?'s':'')}</span></div><div class="bar"><i style="width:${Math.round(ti.day/30*100)}%"></i></div>`;
+    return `<div class="panel"><h2>Période d'essai</h2>${inner}</div>`; })()}
   <div class="panel"><h2>Rémunération</h2>
     <div class="pay"><div><h3>Base</h3><div class="amt"><span class="gold">50 000 Ar</span> <span class="eur">(10 €)</span></div><p class="faint">par rendez-vous pris</p></div>
     </div></div>
@@ -463,8 +475,16 @@ async function vAdmin(){
   }).join('');
   view().innerHTML = `<h1>Admin</h1>${linksHtml}<div class="panel" ${linksHtml?'':'style="margin-top:0"'}><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
   <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>
+  <div class="panel"><h2>Périodes d'essai (30 jours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Début de l'essai</th><th>Avancement</th></tr>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const ti = trialInfo(p.trial_start); const txt = !ti ? '<span class="faint">À définir</span>' : ti.el<0 ? 'Commence le '+parse(ti.start).toLocaleDateString('fr-FR') : ti.day>30 ? 'Terminé' : 'Jour '+ti.day+' / 30'; return `<tr><td>${esc(p.name)}</td><td><input type="date" data-ts="${p.id}" value="${p.trial_start||''}" style="max-width:170px"></td><td data-tx="${p.id}">${txt}</td></tr>`; }).join('')||'<tr><td colspan=3 class="faint">Aucun cold caller.</td></tr>'}</table></div><p id="tsmsg" class="faint" style="font-size:13px;margin:12px 0 0">Choisis la date : elle s'enregistre toute seule.</p></div>
   <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>
   <div class="panel"><h2>Profils des cold callers</h2>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const a=(pa.data||[]).find(x=>x.user_id===p.id); return `<details class="ans"><summary>${esc(p.name)} <span class="faint" style="font-weight:400">${a?'· rempli le '+new Date(a.updated_at).toLocaleDateString('fr-FR'):'· pas encore rempli'}</span></summary>${a?`<dl>${PFIELDS.map(([k,l])=>`<dt>${l}</dt><dd>${esc(a[k]||'—')}</dd>`).join('')}</dl>`:''}</details>`; }).join('') || '<p class="faint">Aucun cold caller.</p>'}</div>`;
+  view().querySelectorAll('[data-ts]').forEach(i => i.onchange = async () => {
+    const v = i.value || null; const m = document.getElementById('tsmsg');
+    const { error } = await sb.from('profiles').update({ trial_start: v }).eq('id', i.dataset.ts);
+    if(error){ m.textContent = 'Erreur : ' + error.message; return; }
+    const ti = trialInfo(v); view().querySelector('[data-tx="'+i.dataset.ts+'"]').textContent = !ti ? 'À définir' : ti.el<0 ? 'Commence le '+parse(ti.start).toLocaleDateString('fr-FR') : ti.day>30 ? 'Terminé' : 'Jour '+ti.day+' / 30';
+    m.textContent = '✅ Enregistré';
+  });
 }
 
 init();
