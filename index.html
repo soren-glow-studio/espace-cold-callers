@@ -175,7 +175,7 @@ const isWeekday = d => { const w = d.getDay(); return w >= 1 && w <= 5; };
 const initials = n => (String(n||'?').split(/[\s._-]+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
 const nf = n => Number(n).toLocaleString('fr-FR');
 
-let S = { user:null, profile:null, stats:{}, items:[], done:new Set(), lessons:[], ldone:new Set(), tab:'accueil', period:'jour', openLesson:null, editDay:null };
+let S = { user:null, profile:null, stats:{}, items:[], done:new Set(), lessons:[], ldone:new Set(), tab:'accueil', period:'jour', hp:'jour', ap:{k:'mois',from:'',to:''}, openLesson:null, editDay:null };
 
 async function init(){
   const { data:{ session } } = await sb.auth.getSession();
@@ -245,6 +245,16 @@ async function loadAll(){
   S.lessons = ls.data||[]; S.ldone = new Set((ld.data||[]).map(r=>r.lesson_id));
 }
 
+const wdays = (a,b) => { let n=0; for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) if(isWeekday(d)) n++; return n; };
+function periodRange(k){
+  const n = new Date(), y = n.getFullYear(), m = n.getMonth();
+  if(k==='semaine'){ const f = new Date(n); f.setDate(n.getDate() - ((n.getDay()+6)%7)); const e = new Date(f); e.setDate(f.getDate()+6); return [ymd(f), ymd(e)]; }
+  if(k==='mois') return [ymd(new Date(y,m,1)), ymd(new Date(y,m+1,0))];
+  if(k==='dernier') return [ymd(new Date(y,m-1,1)), ymd(new Date(y,m,0))];
+  if(/^m:/.test(k)){ const [yy,mm] = k.slice(2).split('-').map(Number); return [ymd(new Date(yy,mm-1,1)), ymd(new Date(yy,mm,0))]; }
+  return [today(), today()];
+}
+
 function trialInfo(ts){
   if(!ts) return null;
   const el = Math.round((parse(today()) - parse(ts)) / 864e5);
@@ -282,9 +292,13 @@ function render(){
 const view = () => document.getElementById('view');
 
 function vAccueil(){
-  const t = S.stats[today()]; const ans = t?.answered||0; const st = streak();
-  const pct = Math.min(100, Math.round(ans/GOAL*100));
-  const mt = t?.meetings||0; const mpct = Math.min(100, Math.round(mt/GOAL_RDV*100));
+  const st = streak();
+  const [pf, pt] = periodRange(S.hp); const prow = Object.values(S.stats).filter(r=>r.day>=pf && r.day<=pt);
+  const ans = prow.reduce((a,r)=>a+(r.answered||0),0), mt = prow.reduce((a,r)=>a+(r.meetings||0),0);
+  const nd = S.hp==='jour' ? 1 : wdays(parse(pf), parse(pt));
+  const gA = GOAL*nd, gM = GOAL_RDV*nd, W = {jour:"aujourd'hui", semaine:'cette semaine', mois:'ce mois-ci'}[S.hp];
+  const pct = Math.min(100, Math.round(ans/gA*100)), mpct = Math.min(100, Math.round(mt/gM*100));
+  const ld = S.lessons.filter(l=>S.ldone.has(l.id)).length, lleft = S.lessons.length - ld, lnext = S.lessons.find(l=>!S.ldone.has(l.id));
   const dn = S.items.filter(i=>S.done.has(i.id)).length;
   const h = new Date().getHours(); const hello = h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
   const date = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -294,13 +308,18 @@ function vAccueil(){
   <p class="date">${date.charAt(0).toUpperCase()+date.slice(1)}</p>
   <h1>${hello} ${esc(S.profile.name)}</h1>
   <div class="hero"><div class="l"><h3>Ta session d'appels</h3>
-    <div class="big"><b>${ans}</b><span>sur ${GOAL} décrochés aujourd'hui</span></div>
+    <div class="sub" style="margin:10px 0 4px">${[['jour',"Aujourd'hui"],['semaine','Cette semaine'],['mois','Ce mois-ci']].map(([k,l])=>`<button class="${S.hp===k?'on':''}" data-hp="${k}">${l}</button>`).join('')}</div>
+    <div class="big"><b>${ans}</b><span>sur ${gA} décrochés ${W}</span></div>
     <div class="bar ${pct>=100?'ok':''}"><i style="width:${pct}%"></i></div>
-    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif du jour atteint. Bien joué.':'Encore '+(GOAL-ans)+' décrochés pour atteindre ton objectif.'}</p>
-    <div class="big" style="margin-top:22px"><b>${mt}</b><span>sur ${GOAL_RDV} rendez-vous pris aujourd'hui</span></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif atteint. Bien joué.':'Encore '+(gA-ans)+' décrochés pour atteindre ton objectif.'}</p>
+    <div class="big" style="margin-top:22px"><b>${mt}</b><span>sur ${gM} rendez-vous pris ${W}</span></div>
     <div class="bar ${mpct>=100?'ok':''}"><i style="width:${mpct}%"></i></div>
-    <p class="faint" style="margin:10px 0 0;font-size:14px">${mpct>=100?'Objectif rendez-vous atteint. Bravo.':'Encore '+(GOAL_RDV-mt)+' rendez-vous pour atteindre ton objectif.'}</p></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${mpct>=100?'Objectif rendez-vous atteint. Bravo.':'Encore '+(gM-mt)+' rendez-vous pour atteindre ton objectif.'}</p></div>
     <button class="go" id="goStats">Saisir mes chiffres</button></div>
+  <div class="panel"><h2>Ta formation</h2>
+    <div class="big" style="margin-top:10px"><b>${ld}</b><span>leçon${ld>1?'s':''} réalisée${ld>1?'s':''} · ${lleft===0?'formation terminée, bravo':lleft+' restante'+(lleft>1?'s':'')}</span></div>
+    <div class="bar ${lleft===0&&S.lessons.length?'ok':''}"><i style="width:${S.lessons.length?Math.round(ld/S.lessons.length*100):0}%"></i></div>
+    ${lnext?`<p class="faint" style="margin:10px 0 12px;font-size:14px">Prochaine : ${esc(lnext.title)}</p><button class="btn" id="goLesson" style="height:40px">Continuer la formation</button>`:''}</div>
   ${(()=>{ const ti = trialInfo(S.profile.trial_start); let inner;
     if(!ti) inner = '<p class="mut" style="margin:10px 0 0">Ta date de début n’a pas encore été fixée.</p>';
     else if(ti.el < 0) inner = `<p style="margin:10px 0 0">Ta période d'essai commence le <b>${parse(ti.start).toLocaleDateString('fr-FR')}</b>.</p>`;
@@ -330,6 +349,8 @@ function vAccueil(){
     w.innerHTML = `<iframe style="aspect-ratio:16/9" src="https://iframe.mediadelivery.net/embed/${BUNNY_LIB}/${b.dataset.v}?preload=true" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe><p class="faint" style="font-size:13px;margin:8px 0 0">Astuce : la roue dentée du lecteur permet d’accélérer la vitesse.</p>`;
     b.textContent = '✕ Fermer la vidéo';
   });
+  view().querySelectorAll('[data-hp]').forEach(b => b.onclick = () => { S.hp = b.dataset.hp; vAccueil(); });
+  const gl = document.getElementById('goLesson'); if(gl) gl.onclick = () => { S.openLesson = lnext.id; S.tab='formation'; render(); window.scrollTo(0,0); };
   document.getElementById('goStats').onclick = () => { S.tab='stats'; S.editDay=null; render(); };
   const tog = async (id, on) => {
     if(on){ await sb.from('checklist_done').insert({user_id:S.user.id,item_id:id}); S.done.add(id); }
@@ -470,26 +491,35 @@ async function vAdmin(){
   view().innerHTML = '<h1>Admin</h1><div class="panel" style="margin-top:0">Chargement…</div>';
   const { data: links } = await sb.from('admin_links').select('*').order('position');
   const linksHtml = (links||[]).length ? `<div class="panel" style="margin-top:0"><h2>Accès rapides</h2><div class="grid" style="margin-top:6px">${links.map(l=>`<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener" style="justify-content:flex-start;height:auto;min-height:44px;padding:10px 14px;text-align:left;text-decoration:none">${esc(l.label)} ↗</a>`).join('')}</div></div>` : '';
-  const from = new Date(); from.setDate(1);
+  const A = S.ap; let [af, at] = A.k==='perso' ? [A.from||today(), A.to||today()] : periodRange(A.k);
+  if(af>at) [af,at] = [at,af];
   const [pr, st, cd, ld, hs, pa] = await Promise.all([
     sb.from('profiles').select('*').order('name'),
-    sb.from('daily_stats').select('*').gte('day', ymd(from)),
+    sb.from('daily_stats').select('*').gte('day', af).lte('day', at),
     sb.from('checklist_done').select('user_id'), sb.from('lessons_done').select('user_id'),
     sb.from('stat_history').select('*').order('changed_at',{ascending:false}).limit(100),
     sb.from('profile_answers').select('*')
   ]);
   const nameOf = id => (pr.data||[]).find(p=>p.id===id)?.name || '?';
   const t = today();
+  const sumAll = k => (st.data||[]).reduce((a,s)=>a+(s[k]||0),0);
+  const mlist = []; for(let i=2;i<=13;i++){ const d = new Date(new Date().getFullYear(), new Date().getMonth()-i, 1); mlist.push(['m:'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})]); }
+  const pbar = `<div class="sub" style="margin:10px 0 12px;flex-wrap:wrap">${[['jour',"Aujourd'hui"],['semaine','Cette semaine'],['mois','Ce mois-ci'],['dernier','Mois dernier']].map(([k,l])=>`<button class="${A.k===k?'on':''}" data-ap="${k}">${l}</button>`).join('')}<select id="apm" style="max-width:190px"><option value="">Mois précédents…</option>${mlist.map(([v,l])=>`<option value="${v}" ${A.k===v?'selected':''}>${l}</option>`).join('')}</select><button class="${A.k==='perso'?'on':''}" data-ap="perso">Période perso</button></div>
+    ${A.k==='perso'?`<div class="row" style="gap:10px;margin:0 0 12px">Du <input type="date" id="apf" value="${af}" style="max-width:170px"> au <input type="date" id="apt" value="${at}" style="max-width:170px"></div>`:''}`;
   const rows = (pr.data||[]).filter(p=>p.role==='caller').map(p=>{
     const mine = (st.data||[]).filter(s=>s.user_id===p.id); const sum = k => mine.reduce((a,s)=>a+s[k],0);
     const td = mine.find(s=>s.day===t);
     return `<tr><td><div class="row" style="flex-wrap:nowrap"><span class="av" style="width:34px;height:34px;font-size:13px;border-radius:10px">${esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td class="gold">${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
   }).join('');
-  view().innerHTML = `<h1>Admin</h1>${linksHtml}<div class="panel" ${linksHtml?'':'style="margin-top:0"'}><h2>Cold callers (mois en cours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows||'<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
+  view().innerHTML = `<h1>Admin</h1>${linksHtml}<div class="panel" ${linksHtml?'':'style="margin-top:0"'}><h2>Cold callers · du ${parse(af).toLocaleDateString('fr-FR')} au ${parse(at).toLocaleDateString('fr-FR')}</h2>${pbar}<div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows ? `<tr style="font-weight:700"><td>Total</td><td>-</td><td>${sumAll('calls')}</td><td>${sumAll('answered')}</td><td class="gold">${sumAll('meetings')}</td><td>-</td><td>-</td></tr>`+rows : '<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
   <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>
   <div class="panel"><h2>Périodes d'essai (30 jours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Début de l'essai</th><th>Avancement</th></tr>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const ti = trialInfo(p.trial_start); const txt = !ti ? '<span class="faint">À définir</span>' : ti.el<0 ? 'Commence le '+parse(ti.start).toLocaleDateString('fr-FR') : ti.day>30 ? 'Terminé' : 'Jour '+ti.day+' / 30'; return `<tr><td>${esc(p.name)}</td><td><input type="date" data-ts="${p.id}" value="${p.trial_start||''}" style="max-width:170px"></td><td data-tx="${p.id}">${txt}</td></tr>`; }).join('')||'<tr><td colspan=3 class="faint">Aucun cold caller.</td></tr>'}</table></div><p id="tsmsg" class="faint" style="font-size:13px;margin:12px 0 0">Choisis la date : elle s'enregistre toute seule.</p></div>
   <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>
   <div class="panel"><h2>Profils des cold callers</h2>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const a=(pa.data||[]).find(x=>x.user_id===p.id); return `<details class="ans"><summary>${esc(p.name)} <span class="faint" style="font-weight:400">${a?'· rempli le '+new Date(a.updated_at).toLocaleDateString('fr-FR'):'· pas encore rempli'}</span></summary>${a?`<dl>${PFIELDS.map(([k,l])=>`<dt>${l}</dt><dd>${esc(a[k]||'—')}</dd>`).join('')}</dl>`:''}</details>`; }).join('') || '<p class="faint">Aucun cold caller.</p>'}</div>`;
+  view().querySelectorAll('[data-ap]').forEach(b => b.onclick = () => { S.ap = { k:b.dataset.ap, from:af, to:at }; vAdmin(); });
+  const apm = document.getElementById('apm'); if(apm) apm.onchange = () => { if(apm.value){ S.ap = { k:apm.value, from:'', to:'' }; vAdmin(); } };
+  const apf = document.getElementById('apf'), apt = document.getElementById('apt');
+  if(apf) apf.onchange = apt.onchange = () => { S.ap = { k:'perso', from:apf.value||af, to:apt.value||at }; vAdmin(); };
   view().querySelectorAll('[data-ts]').forEach(i => i.onchange = async () => {
     const v = i.value || null; const m = document.getElementById('tsmsg');
     const { error } = await sb.from('profiles').update({ trial_start: v }).eq('id', i.dataset.ts);
