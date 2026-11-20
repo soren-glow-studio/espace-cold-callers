@@ -128,6 +128,8 @@ iframe{width:100%;border:0;border-radius:14px;background:#000}
 .err{color:var(--bad);margin-top:10px;font-size:14px}
 .auth{max-width:400px;margin:13vh auto 0;padding:34px 32px}
 .auth .brand{text-align:center;margin-bottom:22px}
+.fgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.fgrid{grid-template-columns:minmax(0,1fr)}}
 .tab .ic,.tab .sh{display:none}
 @media(max-width:760px){
   header.app{padding:0 16px;backdrop-filter:none;background:rgba(6,9,18,.96);justify-content:space-between}
@@ -399,7 +401,7 @@ function vFormation(){
   const cur = S.lessons.find(l=>l.id===S.openLesson) || S.lessons[0];
   const dn = S.lessons.filter(l=>S.ldone.has(l.id)).length;
   view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
-    <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(220px,1fr);align-items:start">
+    <div class="fgrid">
     <div class="panel" style="margin:0"><iframe style="aspect-ratio:16/9" src="${cur.youtube_id.length > 15 ? 'https://iframe.mediadelivery.net/embed/'+BUNNY_LIB+'/'+esc(cur.youtube_id)+'?preload=true' : 'https://www.youtube-nocookie.com/embed/'+esc(cur.youtube_id)+'?rel=0&modestbranding=1'}" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
     <h2 style="margin:16px 0 10px">${esc(cur.title)}</h2>
     <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div>
