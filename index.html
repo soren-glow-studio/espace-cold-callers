@@ -129,6 +129,13 @@ iframe{width:100%;border:0;border-radius:14px;background:#000}
 .err{color:var(--bad);margin-top:10px;font-size:14px}
 .auth{max-width:400px;margin:13vh auto 0;padding:34px 32px}
 .auth .brand{text-align:center;margin-bottom:22px}
+.acc .hero{padding:20px 24px;gap:18px;align-items:center}.acc .hero .big b{font-size:44px}.acc .hero .bar{margin-top:10px}.acc .hero .go{height:46px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px}.two p{font-size:13px!important;margin:8px 0 0!important}
+.tri{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}.tri>.panel{margin-top:0;padding:16px 20px}
+.tri .big b{font-size:34px}.tri .big{margin-top:4px}.tri .bar{margin-top:10px}.tri h2{font-size:16px}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}.duo>.bonus{margin-top:0;padding:16px 20px}
+.duo .bamt{font-size:24px}.duo .bonus h2{font-size:17px}
+@media(max-width:700px){.two{grid-template-columns:1fr;gap:14px}}
 .fgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:16px;align-items:start}
 @media(max-width:900px){.fgrid{grid-template-columns:minmax(0,1fr)}}
 .tab .ic,.tab .sh{display:none}
@@ -307,15 +314,16 @@ function vAccueil(){
   view().innerHTML = `
   <p class="date">${date.charAt(0).toUpperCase()+date.slice(1)}</p>
   <h1>${hello} ${esc(S.profile.name)}</h1>
-  <div class="hero"><div class="l"><h3>Ta session d'appels</h3>
+  <div class="acc"><div class="hero"><div class="l"><h3>Ta session d'appels</h3>
     <div class="sub" style="margin:10px 0 4px">${[['jour',"Aujourd'hui"],['semaine','Cette semaine'],['mois','Ce mois-ci']].map(([k,l])=>`<button class="${S.hp===k?'on':''}" data-hp="${k}">${l}</button>`).join('')}</div>
-    <div class="big"><b>${ans}</b><span>sur ${gA} décrochés ${W}</span></div>
+    <div class="two"><div><div class="big"><b>${ans}</b><span>sur ${gA} décrochés ${W}</span></div>
     <div class="bar ${pct>=100?'ok':''}"><i style="width:${pct}%"></i></div>
-    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif atteint. Bien joué.':'Encore '+(gA-ans)+' décrochés pour atteindre ton objectif.'}</p>
-    <div class="big" style="margin-top:22px"><b>${mt}</b><span>sur ${gM} rendez-vous pris ${W}</span></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif atteint. Bien joué.':'Encore '+(gA-ans)+' décrochés pour atteindre ton objectif.'}</p></div>
+    <div><div class="big"><b>${mt}</b><span>sur ${gM} rendez-vous pris ${W}</span></div>
     <div class="bar ${mpct>=100?'ok':''}"><i style="width:${mpct}%"></i></div>
-    <p class="faint" style="margin:10px 0 0;font-size:14px">${mpct>=100?'Objectif rendez-vous atteint. Bravo.':'Encore '+(gM-mt)+' rendez-vous pour atteindre ton objectif.'}</p></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${mpct>=100?'Objectif rendez-vous atteint. Bravo.':'Encore '+(gM-mt)+' rendez-vous pour atteindre ton objectif.'}</p></div></div></div>
     <button class="go" id="goStats">Saisir mes chiffres</button></div>
+  </div><div class="tri">
   <div class="panel"><h2>Ta formation</h2>
     <div class="big" style="margin-top:10px"><b>${ld}</b><span>leçon${ld>1?'s':''} réalisée${ld>1?'s':''} · ${lleft===0?'formation terminée, bravo':lleft+' restante'+(lleft>1?'s':'')}</span></div>
     <div class="bar ${lleft===0&&S.lessons.length?'ok':''}"><i style="width:${S.lessons.length?Math.round(ld/S.lessons.length*100):0}%"></i></div>
@@ -328,8 +336,8 @@ function vAccueil(){
     return `<div class="panel"><h2>Période d'essai</h2>${inner}</div>`; })()}
   <div class="panel"><h2>Rémunération</h2>
     <div class="pay"><div><h3>Base</h3><div class="amt"><span class="gold">50 000 Ar</span> <span class="eur">(10 €)</span></div><p class="faint">par rendez-vous pris</p></div>
-    </div></div>
-  <div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
+    </div></div></div>
+  <div class="duo"><div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
     <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Commission sur vente signée</h2>
       <p style="margin:0;color:#e9dcb8"><b style="color:#ffe9a8">3 %</b> de chaque vente signée provenant de vos RDV.</p></div>
     <div style="text-align:right"><div class="bamt">225 000 à 525 000 Ar</div><div class="eur">(45 à 105 €) par signature</div></div></div></div>
@@ -338,9 +346,9 @@ function vAccueil(){
       <p style="margin:0;color:#e9dcb8">${GOAL}+ décrochés par jour, du lundi au vendredi, ${STREAK_GOAL} jours ouvrés d'affilée.</p></div>
     <div style="text-align:right"><div class="bamt">500 000 Ar</div><div class="eur">(100 €)</div></div></div>
     <div class="big" style="margin-top:20px"><b style="font-size:40px;color:#ffe9a8">${Math.min(st,STREAK_GOAL)}</b><span style="color:#e9dcb8">/ ${STREAK_GOAL} jours</span></div>
-    <div class="bar gbar"><i style="width:${Math.min(100,st/STREAK_GOAL*100)}%"></i></div></div>
-  <div class="sec"><h2>Ta roadmap</h2><span>${dn}/${S.items.length}</span></div>
-  <div class="bar" style="margin:10px 0 6px"><i style="width:${S.items.length?dn/S.items.length*100:0}%"></i></div>
+    <div class="bar gbar"><i style="width:${Math.min(100,st/STREAK_GOAL*100)}%"></i></div></div></div>
+  <div class="sec" style="margin-top:22px"><h2>Ta roadmap</h2><span>${dn}/${S.items.length}</span></div>
+  <div class="bar" style="margin:8px 0 4px"><i style="width:${S.items.length?dn/S.items.length*100:0}%"></i></div>
   ${secs.map(s=>`<h3 class="secdate">${esc(s.k)}</h3><div class="todolist">${s.items.map(row).join('')}</div>`).join('') || '<p class="mut">Aucune étape pour le moment.</p>'}
   ${MEET_URL?`<div class="panel"><h2>Salle de motivation</h2><a class="btn" href="${esc(MEET_URL)}" target="_blank" rel="noopener">Rejoindre (caméra uniquement)</a></div>`:''}`;
   view().querySelectorAll('[data-v]').forEach(b => b.onclick = () => {
