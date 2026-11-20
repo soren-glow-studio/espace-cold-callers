@@ -393,7 +393,7 @@ const TOOLS = [
   ['CRM · Tracking','Google Sheets','https://docs.google.com/spreadsheets/d/1138atNq__WcVzng0azTiAmAOqE-zgWvX0nm1h5gAfx4/edit?usp=sharing']
 ];
 const scriptsMod = () => NOTION_URL ? `<div class="sec" style="margin-top:40px"><h2>Scripts</h2><a class="btn" href="${esc(NOTION_URL)}" target="_blank" rel="noopener" style="margin-left:auto">Plein écran</a></div><iframe style="height:70vh;background:#fff;margin-top:12px" src="${esc(NOTION_URL)}"></iframe>` : '';
-const toolbox = () => scriptsMod() + `<div class="sec" style="margin-top:40px"><h2>Boîte à outils</h2><span class="pill">Dernier module</span></div>
+const toolbox = () => scriptsMod() + `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length).padStart(2,'0')} · Boîte à outils</h2><span class="pill">Dernier module</span></div>
   <div class="grid" style="margin-top:12px">${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
 
 function vFormation(){
@@ -403,9 +403,9 @@ function vFormation(){
   view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
     <div class="fgrid">
     <div class="panel" style="margin:0"><iframe style="aspect-ratio:16/9" src="${cur.youtube_id.length > 15 ? 'https://iframe.mediadelivery.net/embed/'+BUNNY_LIB+'/'+esc(cur.youtube_id)+'?preload=true' : 'https://www.youtube-nocookie.com/embed/'+esc(cur.youtube_id)+'?rel=0&modestbranding=1'}" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-    <h2 style="margin:16px 0 10px">${esc(cur.title)}</h2>
+    <p class="faint" style="margin:16px 0 2px;font-size:13px;text-transform:uppercase;letter-spacing:.08em">Module ${String(S.lessons.indexOf(cur)).padStart(2,'0')}</p><h2 style="margin:0 0 10px">${esc(cur.title)}</h2>
     <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div>
-    <div class="panel" style="margin:0;padding:10px 18px">${S.lessons.map(l=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><a href="#" data-l="${l.id}" style="color:${l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}</div></div>` + toolbox();
+    <div class="panel" style="margin:0;padding:14px 18px"><h2 style="margin:0 0 4px">Sommaire</h2>${S.lessons.map((l,n)=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><span class="rk" style="min-width:22px">${String(n).padStart(2,'0')}</span><a href="#" data-l="${l.id}" style="color:${l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}</div></div>` + toolbox();
   view().querySelectorAll('[data-l]').forEach(a => a.onclick = e => { e.preventDefault(); S.openLesson = +a.dataset.l; vFormation(); });
   document.getElementById('seen').onchange = async e => {
     if(e.target.checked){ await sb.from('lessons_done').insert({user_id:S.user.id,lesson_id:cur.id}); S.ldone.add(cur.id); }
