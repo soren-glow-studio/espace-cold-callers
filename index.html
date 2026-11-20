@@ -317,7 +317,7 @@ function vAccueil(){
 }
 
 function vStats(){
-  view().innerHTML = `<h1>Stats & classement</h1><div id="sSaisie"></div><div class="sec" style="margin-top:34px"><h2>Classement</h2></div><div id="sRank" style="margin-top:12px"></div>`;
+  view().innerHTML = `<h1>Stats & classement</h1><div class="sec"><h2>Classement</h2></div><div id="sRank" style="margin-top:12px"></div><div class="sec" style="margin-top:34px"><h2>Mes stats</h2></div><div id="sSaisie" style="margin-top:12px"></div>`;
   vSaisie(document.getElementById('sSaisie')); vClassement(document.getElementById('sRank'));
 }
 
