@@ -183,7 +183,8 @@ async function init(){
   if(AUTH_TYPE === 'invite' || AUTH_TYPE === 'recovery') return renderSetPassword();
   await loadAll();
   const ht = location.hash.slice(1);
-  if(['accueil','formation','saisie','classement','profil'].includes(ht) || (ht === 'admin' && S.profile?.role === 'admin')) S.tab = ht;
+  if(['accueil','formation','stats','profil'].includes(ht) || (ht === 'admin' && S.profile?.role === 'admin')) S.tab = ht;
+  if(ht==='saisie'||ht==='classement') S.tab = 'stats';
   render();
 }
 
@@ -260,8 +261,7 @@ function render(){
   const tabs = [
     ['accueil','Aujourd\'hui','Accueil',ic('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>')],
     ['formation','Formation','Formation',ic('<circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/>')],
-    ['saisie','Mes stats','Stats',ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
-    ['classement','Classement','Classement',ic('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3"/>')],
+    ['stats','Stats & classement','Stats',ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
     ['profil','Mon profil','Profil',ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')]
   ];
   if(admin) tabs.push(['admin','Admin','Admin',ic('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')]);
@@ -270,7 +270,7 @@ function render(){
   <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
   $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; history.replaceState(null, '', '#' + S.tab); render(); window.scrollTo(0,0); });
   document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
-  ({accueil:vAccueil, saisie:vSaisie, classement:vClassement, formation:vFormation, profil:vProfil, admin:vAdmin})[S.tab]();
+  ({accueil:vAccueil, stats:vStats, formation:vFormation, profil:vProfil, admin:vAdmin})[S.tab]();
 }
 const view = () => document.getElementById('view');
 
@@ -307,7 +307,7 @@ function vAccueil(){
   <div class="bar" style="margin:10px 0 6px"><i style="width:${S.items.length?dn/S.items.length*100:0}%"></i></div>
   ${secs.map(s=>`<h3 class="secdate">${esc(s.k)}</h3><div class="todolist">${s.items.map(row).join('')}</div>`).join('') || '<p class="mut">Aucune étape pour le moment.</p>'}
   ${MEET_URL?`<div class="panel"><h2>Salle de motivation</h2><a class="btn" href="${esc(MEET_URL)}" target="_blank" rel="noopener">Rejoindre (caméra uniquement)</a></div>`:''}`;
-  document.getElementById('goStats').onclick = () => { S.tab='saisie'; S.editDay=null; render(); };
+  document.getElementById('goStats').onclick = () => { S.tab='stats'; S.editDay=null; render(); };
   const tog = async (id, on) => {
     if(on){ await sb.from('checklist_done').insert({user_id:S.user.id,item_id:id}); S.done.add(id); }
     else { await sb.from('checklist_done').delete().eq('user_id',S.user.id).eq('item_id',id); S.done.delete(id); }
@@ -316,9 +316,14 @@ function vAccueil(){
   view().querySelectorAll('[data-i]').forEach(c => c.onchange = () => tog(+c.dataset.i, c.checked));
 }
 
-async function vSaisie(){
+function vStats(){
+  view().innerHTML = `<h1>Stats & classement</h1><div id="sSaisie"></div><div class="sec" style="margin-top:34px"><h2>Classement</h2></div><div id="sRank" style="margin-top:12px"></div>`;
+  vSaisie(document.getElementById('sSaisie')); vClassement(document.getElementById('sRank'));
+}
+
+async function vSaisie(box){
   const day = S.editDay || today(); const r = S.stats[day] || {};
-  view().innerHTML = `<h1>Mes chiffres</h1><div class="panel" style="margin-top:0"><h2>Saisie du jour</h2>
+  box.innerHTML = `<div class="panel" style="margin-top:0"><h2>Saisie du jour</h2>
     <div class="grid"><div><label>Date</label><input type="date" id="d" value="${day}" max="${today()}"></div>
     <div><label>Appels passés</label><input type="number" min="0" id="c" value="${r.calls??''}"></div>
     <div><label>Décrochés</label><input type="number" min="0" id="a" value="${r.answered??''}"></div>
@@ -327,7 +332,7 @@ async function vSaisie(){
   <div class="panel"><h2>14 derniers jours</h2><div id="last"></div></div>
   <div class="panel"><h2>Historique des modifications</h2><div id="hist" class="mut">Chargement…</div></div>`;
   const dEl = document.getElementById('d');
-  dEl.onchange = () => { S.editDay = dEl.value; vSaisie(); };
+  dEl.onchange = () => { S.editDay = dEl.value; vSaisie(box); };
   document.getElementById('save').onclick = async () => {
     const v = id => Math.max(0, parseInt(document.getElementById(id).value||'0',10) || 0);
     const row = { user_id:S.user.id, day:dEl.value, calls:v('c'), answered:v('a'), meetings:v('m') };
@@ -335,7 +340,7 @@ async function vSaisie(){
     if(row.meetings > row.answered) return document.getElementById('msg').textContent = '⚠️ Rendez-vous ne peut pas dépasser les décrochés.';
     const { error } = await sb.from('daily_stats').upsert(row, { onConflict:'user_id,day' });
     if(error) return document.getElementById('msg').textContent = 'Erreur : ' + error.message;
-    S.stats[row.day] = row; document.getElementById('msg').textContent = '✅ Enregistré'; histLoad(row.day); lastRender();
+    S.stats[row.day] = row; document.getElementById('msg').textContent = '✅ Enregistré'; histLoad(row.day); lastRender(); const rb = document.getElementById('sRank'); if(rb) vClassement(rb);
   };
   const histLoad = async d => {
     const { data } = await sb.from('stat_history').select('*').eq('user_id',S.user.id).eq('day',d).order('changed_at',{ascending:false});
@@ -345,19 +350,19 @@ async function vSaisie(){
     const rows = []; const d = new Date();
     for(let i=0;i<14;i++){ const k = ymd(d); rows.push([k, S.stats[k]]); d.setDate(d.getDate()-1); }
     document.getElementById('last').innerHTML = `<table><tr><th>Date</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th></th></tr>${rows.map(([k,s])=>`<tr><td>${parse(k).toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td><td>${s?s.calls:'-'}</td><td>${s?(s.answered>=GOAL?'<span class="gold">'+s.answered+'</span>':s.answered):'-'}</td><td>${s?s.meetings:'-'}</td><td style="text-align:right"><button class="btn" data-e="${k}" style="height:34px">Modifier</button></td></tr>`).join('')}</table>`;
-    document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.editDay = b.dataset.e; vSaisie(); window.scrollTo(0,0); });
+    document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.editDay = b.dataset.e; vSaisie(box); window.scrollTo(0,0); });
   };
   histLoad(day); lastRender();
 }
 
-async function vClassement(){
-  view().innerHTML = `<h1>Classement</h1><div class="sub">${[['jour','Aujourd\'hui'],['semaine','Semaine'],['mois','Mois']].map(([k,l])=>`<button class="${S.period===k?'on':''}" data-p="${k}">${l}</button>`).join('')}</div><div id="rk" class="mut">Chargement…</div>`;
-  view().querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.period = b.dataset.p; vClassement(); });
+async function vClassement(box){
+  box.innerHTML = `<div class="sub">${[['jour','Aujourd\'hui'],['semaine','Semaine'],['mois','Mois']].map(([k,l])=>`<button class="${S.period===k?'on':''}" data-p="${k}">${l}</button>`).join('')}</div><div id="rk" class="mut">Chargement…</div>`;
+  box.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.period = b.dataset.p; vClassement(box); });
   const now = new Date(); let from = new Date(now);
   if(S.period==='semaine') from.setDate(now.getDate() - ((now.getDay()+6)%7));
   if(S.period==='mois') from = new Date(now.getFullYear(), now.getMonth(), 1);
   const { data, error } = await sb.rpc('get_ranking', { p_from: ymd(from), p_to: ymd(now) });
-  if(error) return document.getElementById('rk').textContent = error.message;
+  if(error) return box.querySelector('#rk').textContent = error.message;
   const list = data||[]; const i = list.findIndex(x=>x.user_id===S.user.id);
   const me = i>=0 ? list[i] : null;
   let html = '';
@@ -384,7 +389,7 @@ async function vClassement(){
       html += `<tr class="${r.user_id===S.user.id?'me':''}"><td class="rk">${r.rank}</td><td>${esc(r.name)}${r.user_id===S.user.id?' <span class="pill">toi</span>':''}</td><td class="gold">${nf(r.meetings)}</td><td>${nf(r.answered)}</td><td>${nf(r.calls)}</td></tr>`; prev=k; });
     html += '</table></div>';
   }
-  document.getElementById('rk').innerHTML = html + '<p class="faint" style="font-size:13px;margin-top:18px">Classement : rendez-vous pris, puis décrochés.</p>';
+  box.querySelector('#rk').innerHTML = html + '<p class="faint" style="font-size:13px;margin-top:18px">Classement : rendez-vous pris, puis décrochés.</p>';
 }
 
 const TOOLS = [
