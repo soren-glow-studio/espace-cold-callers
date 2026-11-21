@@ -452,9 +452,8 @@ const SCRIPTS = [
   ['Script Cold Call Niche pompe à chaleur','Notion', NOTION_URL],
   ['Script basique : Template à adapter','Google Docs','https://docs.google.com/document/d/1-gx-zdofkpam1GWJ0zmfKzD_UzWhuTHACK7C-jbG3Z8/edit?usp=sharing']
 ];
-const scriptsMod = () => `<div class="sec" style="margin-top:40px"><h2>Scripts</h2></div><div class="grid" style="margin-top:12px">${SCRIPTS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
-const toolbox = () => scriptsMod() + `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length).padStart(2,'0')} · Boîte à outils</h2><span class="pill">Dernier module</span></div>
-  <div class="grid" style="margin-top:12px">${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
+const toolbox = () => `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length).padStart(2,'0')} · Boîte à outils</h2><span class="pill">Dernier module</span></div>
+  <div class="grid" style="margin-top:12px">${[...SCRIPTS,...TOOLS].map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
 
 function vFormation(){
   if(!S.lessons.length){ view().innerHTML = '<h1>Formation</h1><div class="panel" style="margin-top:0">Aucune leçon pour le moment.</div>' + toolbox(); return; }
