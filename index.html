@@ -445,11 +445,14 @@ async function vClassement(box){
 }
 
 const TOOLS = [
-  ['Script de vente','Google Docs','https://docs.google.com/document/d/1-gx-zdofkpam1GWJ0zmfKzD_UzWhuTHACK7C-jbG3Z8/edit?usp=sharing'],
   ['CRM · Leadsourcing','Google Sheets','https://docs.google.com/spreadsheets/d/1uOiQ0DsnzCCnD7Cyk70smiWBfBJ9FVu0yRSitloX-lI/edit?usp=sharing'],
   ['CRM · Tracking','Google Sheets','https://docs.google.com/spreadsheets/d/1138atNq__WcVzng0azTiAmAOqE-zgWvX0nm1h5gAfx4/edit?usp=sharing']
 ];
-const scriptsMod = () => NOTION_URL ? `<div class="sec" style="margin-top:40px"><h2>Scripts</h2><a class="btn" href="${esc(NOTION_URL)}" target="_blank" rel="noopener" style="margin-left:auto">Plein écran</a></div><iframe style="height:70vh;background:#fff;margin-top:12px" src="${esc(NOTION_URL)}"></iframe>` : '';
+const SCRIPTS = [
+  ['Script Cold Call Niche pompe à chaleur','Notion', NOTION_URL],
+  ['Script basique : Template à adapter','Google Docs','https://docs.google.com/document/d/1-gx-zdofkpam1GWJ0zmfKzD_UzWhuTHACK7C-jbG3Z8/edit?usp=sharing']
+];
+const scriptsMod = () => `<div class="sec" style="margin-top:40px"><h2>Scripts</h2></div><div class="grid" style="margin-top:12px">${SCRIPTS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
 const toolbox = () => scriptsMod() + `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length).padStart(2,'0')} · Boîte à outils</h2><span class="pill">Dernier module</span></div>
   <div class="grid" style="margin-top:12px">${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
 
