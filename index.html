@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glow Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0e1a'/%3E%3Cpath d='M32 9l5.6 15.4L53 30l-15.4 5.6L32 51l-5.6-15.4L11 30l15.4-5.6z' fill='%23f2c14e'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --ink:#060912;--s1:rgba(15,21,38,.72);--s2:rgba(21,29,52,.78);--s3:rgba(28,38,66,.8);
+  --line:rgba(170,190,255,.09);--line2:rgba(170,190,255,.16);--line3:rgba(170,190,255,.28);
+  --plat:#eef2fb;--dim:#aab3c5;--faint:#7d879a;
+  --star:#6f9bff;--star2:#4f78e6;--champ:#f2c14e;--ok:#4ecb8e;--bad:#ff7a70;
+  --metal:linear-gradient(177deg,#ffffff 0%,#dfe5ef 45%,#aab6c8 100%);
+  --ui:"Inter Tight",system-ui,-apple-system,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  --r:10px;--t:170ms cubic-bezier(.2,.6,.2,1);
+}
+*{box-sizing:border-box}
+html{background:var(--ink)}
+body{margin:0;min-height:100vh;color:#fff;font:15px/1.55 var(--ui);-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;background:transparent}
+#skyBg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;pointer-events:none}
+#skyGlow{position:fixed;z-index:-1;pointer-events:none;width:560px;height:560px;border-radius:50%;left:50%;top:30%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(130,165,255,.09),rgba(130,165,255,.03) 45%,transparent)}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.025;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+header.app{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:18px;padding:0 28px;height:54px;border-bottom:1px solid var(--line);background:rgba(6,9,18,.62);backdrop-filter:blur(16px)}
+.brand{font:600 12px var(--mono);letter-spacing:.34em;color:var(--plat);white-space:nowrap}
+.brand i{display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:50%;background:var(--star);box-shadow:0 0 14px var(--star)}
+nav.tabs{display:flex;gap:2px;margin-left:24px;flex:1}
+.tab{position:relative;background:none;border:0;color:#aeb6c6;font:600 14.5px var(--ui);padding:0 14px;height:54px;cursor:pointer;transition:color var(--t)}
+.tab:hover{color:#fff}
+.tab.on{color:#fff}
+.tab.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--star);box-shadow:0 0 12px var(--star)}
+.who{color:var(--dim);font-size:13.5px;white-space:nowrap}
+.tab,.link{white-space:nowrap}
+@media(max-width:900px){.who{display:none}}
+.link{background:none;border:0;color:var(--dim);font:600 13.5px var(--ui);cursor:pointer;padding:6px 4px}
+.link:hover{color:#fff}
+main{max-width:1000px;margin:0 auto;padding:32px 24px 90px}
+.date{color:var(--faint);font-size:14px;margin:0 0 6px}
+h1{margin:0 0 22px;font-size:38px;line-height:1.05;font-weight:700;letter-spacing:-.035em}
+h2{margin:0 0 12px;font-size:19px;font-weight:700;letter-spacing:-.02em}
+h3{margin:0 0 6px;font-size:13.5px;font-weight:500;color:var(--dim)}
+.sec{display:flex;align-items:baseline;gap:10px;margin:34px 0 4px}
+.sec h2{margin:0}.sec span{color:var(--faint);font-size:14px}
+.mut{color:var(--dim)}.faint{color:var(--faint)}
+.hero{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:flex-end;gap:28px;flex-wrap:wrap;padding:30px 32px;border-radius:18px;border:1px solid var(--line2);
+  background:radial-gradient(120% 140% at 0% 0%,rgba(111,155,255,.13),transparent 55%),linear-gradient(rgba(22,31,56,.85),rgba(12,17,32,.85));
+  box-shadow:0 30px 60px -40px #000,inset 0 1px 0 rgba(255,255,255,.05)}
+.hero .l{flex:1;min-width:260px}
+.big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:8px 0 0}
+.big b{font-weight:700;font-size:64px;line-height:.9;letter-spacing:-.04em;color:var(--plat)}
+.big span{color:var(--dim);font-size:15px}
+.bar{height:5px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:18px}
+.bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--star2),var(--star));transition:width .4s}
+.bar.ok i{background:linear-gradient(90deg,#3fb57d,#5fd79c)}
+.go{display:inline-flex;align-items:center;justify-content:center;height:56px;padding:0 28px;border-radius:12px;border:0;cursor:pointer;color:#04150d;font:700 15.5px var(--ui);
+  background:linear-gradient(#5fd79c,#3fb57d);box-shadow:0 12px 30px -12px rgba(78,203,142,.65),inset 0 1px 0 rgba(255,255,255,.35);transition:filter var(--t),transform var(--t)}
+.go:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:var(--r);border:1px solid var(--line2);background:var(--s2);color:#fff;font:700 14px var(--ui);cursor:pointer;transition:background var(--t),border-color var(--t)}
+.btn:hover{border-color:var(--line3);background:var(--s3)}
+.btn.pri{background:linear-gradient(#7aa6ff,#4f78e6);border-color:transparent;box-shadow:0 10px 26px -12px rgba(111,155,255,.8),inset 0 1px 0 rgba(255,255,255,.3)}
+.silver{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:14px;border:1px solid rgba(255,255,255,.5);cursor:pointer;color:#0a0d14;font:700 14px var(--ui);
+  background:var(--metal);box-shadow:0 12px 30px -14px rgba(200,215,255,.9);transition:filter var(--t)}
+.silver:hover{filter:brightness(1.06)}
+.panel{background:var(--s1);border:1px solid var(--line2);border-radius:16px;padding:22px 24px;backdrop-filter:blur(12px);box-shadow:0 30px 60px -44px #000,inset 0 1px 0 rgba(255,255,255,.04);margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.todo{display:flex;align-items:center;gap:16px;padding:16px 4px;border-top:1px solid var(--line)}
+.todo:last-child{border-bottom:1px solid var(--line)}
+.todo .t{flex:1}.todo .t b{display:block;font-size:16px;font-weight:600}.todo .t small{color:var(--faint);font-size:13.5px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--champ);box-shadow:0 0 10px rgba(242,193,78,.7);flex:none}
+.todo.done .dot{background:var(--ok);box-shadow:0 0 10px rgba(78,205,142,.6)}.todo.done .t b{color:var(--faint);text-decoration:line-through;font-weight:500}
+.gold{color:var(--champ);font-weight:700}
+.eur{color:var(--dim);font-size:14px;font-weight:500}
+.secdate{margin:22px 0 4px;font-size:13px;font-weight:600;color:var(--champ);text-transform:uppercase;letter-spacing:.08em}
+.todolist{border-top:1px solid var(--line)}
+.chkrow{display:flex;align-items:center;gap:14px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;margin:0;color:#fff;font-size:16px;font-weight:500;transition:background var(--t)}
+.chkrow:hover{background:rgba(255,255,255,.03)}
+.chkrow input{position:absolute;opacity:0;pointer-events:none}
+.chkrow .box{width:22px;height:22px;border-radius:6px;border:1.6px solid var(--line3);flex:none;display:grid;place-items:center;transition:all var(--t)}
+.chkrow input:checked+.box{background:var(--star);border-color:var(--star);box-shadow:0 0 12px rgba(111,155,255,.5)}
+.chkrow input:checked+.box::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.2px 2.2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chkrow.done .lbl{color:var(--faint);text-decoration:line-through}
+.chkrow input:focus-visible+.box{outline:2px solid var(--star);outline-offset:2px}
+textarea{width:100%;min-height:96px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line2);background:rgba(6,9,18,.6);color:#fff;font:500 15px/1.5 var(--ui);outline:none;resize:vertical}
+textarea:focus{border-color:var(--star);box-shadow:0 0 0 3px rgba(111,155,255,.18)}
+.note{display:flex;gap:12px;padding:14px 16px;border-radius:12px;border:1px solid rgba(111,155,255,.35);background:rgba(111,155,255,.08);color:var(--plat);font-size:14.5px;margin:0 0 18px}
+details.ans{border-top:1px solid var(--line);padding:12px 0}details.ans summary{cursor:pointer;font-weight:600}
+details.ans dl{margin:12px 0 0}details.ans dt{color:var(--faint);font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:12px}details.ans dd{margin:4px 0 0;white-space:pre-wrap}
+a.tool{display:block;margin:0;text-decoration:none;color:#fff;transition:border-color var(--t),transform var(--t)}
+a.tool:hover{border-color:var(--line3);transform:translateY(-2px)}
+.pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
+.amt{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.2}.amt .eur{font-size:16px}
+.pay p{margin:6px 0 0;font-size:14px}
+.bonus{position:relative;overflow:hidden;margin-top:16px;padding:26px 28px;border-radius:18px;border:1px solid rgba(242,193,78,.5);
+  background:radial-gradient(120% 160% at 100% 0%,rgba(242,193,78,.22),transparent 55%),linear-gradient(135deg,rgba(60,44,12,.85),rgba(26,19,8,.9));
+  box-shadow:0 30px 70px -40px rgba(242,193,78,.55),inset 0 1px 0 rgba(255,236,170,.25)}
+.bonus::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,236,170,.10) 50%,transparent 60%);transform:translateX(-100%);animation:shine 5s ease-in-out infinite;pointer-events:none}
+@keyframes shine{0%,60%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.bonus .tag{display:inline-block;padding:4px 12px;border-radius:30px;font:600 11.5px var(--ui);letter-spacing:.14em;color:#2a1d04;background:linear-gradient(177deg,#ffeeb8,#f2c14e 55%,#c08f27)}
+.bamt{font-size:34px;font-weight:700;letter-spacing:-.03em;background:linear-gradient(177deg,#fff3c4,#f2c14e 55%,#d49a2a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bonus .eur{color:#e9dcb8}
+.gbar{background:rgba(255,236,170,.14)}.gbar i{background:linear-gradient(90deg,#c08f27,#ffe28a);box-shadow:0 0 14px rgba(242,193,78,.6)}
+.pill{display:inline-block;padding:5px 11px;border-radius:30px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line2);color:var(--dim)}
+label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px;font-weight:500}
+input{width:100%;height:44px;padding:0 14px;border-radius:var(--r);border:1px solid var(--line2);background:rgba(6,9,18,.6);color:#fff;font:500 15px var(--ui);outline:none;transition:border-color var(--t),box-shadow var(--t)}
+input:focus{border-color:var(--star);box-shadow:0 0 0 3px rgba(111,155,255,.18)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--star);flex:none}
+.sub{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.sub button{background:none;border:0;color:var(--faint);font:600 14.5px var(--ui);padding:10px 14px;cursor:pointer;position:relative}
+.sub button.on{color:#fff}.sub button.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--star);box-shadow:0 0 10px var(--star)}
+.av{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--metal);color:#0a0d14;font:700 15px var(--ui);box-shadow:0 10px 24px -12px rgba(200,215,255,.8);flex:none}
+.av.lg{width:64px;height:64px;border-radius:16px;font-size:20px}
+.av.gold{outline:2px solid rgba(242,193,78,.7);box-shadow:0 0 30px rgba(242,193,78,.35)}
+.podium{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:14px;align-items:end;margin:26px 0 8px}
+.podium .p{text-align:center}.podium .p b{display:block;margin-top:10px;font-size:15px}.podium .p .pts{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.podium .p.first .pts{font-size:30px;color:var(--champ)}
+.podium .p small{color:var(--faint);font-size:12.5px}
+table{width:100%;border-collapse:collapse}
+th{color:var(--faint);font-weight:500;font-size:12.5px;text-align:left;padding:10px 8px;text-transform:uppercase;letter-spacing:.06em}
+td{padding:13px 8px;border-top:1px solid var(--line)}
+tr.me td{background:rgba(111,155,255,.12);font-weight:600}
+tr.me td:first-child{box-shadow:inset 3px 0 0 var(--star)}
+.rk{font-family:var(--mono);color:var(--dim)}
+iframe{width:100%;border:0;border-radius:14px;background:#000}
+.err{color:var(--bad);margin-top:10px;font-size:14px}
+.auth{max-width:400px;margin:13vh auto 0;padding:34px 32px}
+.auth .brand{text-align:center;margin-bottom:22px}
+.acc .hero{padding:20px 24px;gap:18px;align-items:center}.acc .hero .big b{font-size:44px}.acc .hero .bar{margin-top:10px}.acc .hero .go{height:46px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px}.two p{font-size:13px!important;margin:8px 0 0!important}
+.tri{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}.tri>.panel{margin-top:0;padding:16px 20px}
+.tri .big b{font-size:34px}.tri .big{margin-top:4px}.tri .bar{margin-top:10px}.tri h2{font-size:16px}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}.duo>.bonus{margin-top:0;padding:16px 20px}
+.duo .bamt{font-size:24px}.duo .bonus h2{font-size:17px}
+@media(max-width:700px){.two{grid-template-columns:1fr;gap:14px}}
+.tool.main{border:1px solid rgba(242,193,78,.55);background:linear-gradient(135deg,rgba(242,193,78,.16),rgba(242,193,78,.04));box-shadow:0 0 0 1px rgba(242,193,78,.15),0 20px 50px -30px rgba(242,193,78,.45)}
+.tool.main .tag{display:inline-block;padding:4px 12px;border-radius:30px;font:600 11.5px var(--ui);letter-spacing:.14em;color:#2a1d04;background:linear-gradient(177deg,#ffeeb8,#f2c14e 55%,#c08f27)}
+.fgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:16px;align-items:start}
+@media(min-width:901px){.fgrid>.panel:first-child{position:sticky;top:70px}}
+@media(max-width:900px){.fgrid{display:block}.fgrid>.panel:first-child{display:contents}
+.vstick{position:sticky;top:54px;z-index:4;background:#060912;padding:8px 0 10px}
+.vmeta{background:var(--s1);border:1px solid var(--line2);border-radius:16px;padding:16px 18px;margin-bottom:16px}
+.fgrid>.panel:last-child{margin-top:0!important}}
+.tab .ic,.tab .sh{display:none}
+@media(max-width:760px){
+  header.app{padding:0 16px;backdrop-filter:none;background:rgba(6,9,18,.96);justify-content:space-between}
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:30;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);justify-content:space-around;gap:0;background:rgba(8,12,24,.96);backdrop-filter:blur(16px);border-top:1px solid var(--line2);flex:none}
+  .tab{flex:1;min-width:0;height:62px;padding:6px 2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10.5px;font-weight:600}
+  .tab .ic{display:block;width:22px;height:22px}.tab .lg{display:none}.tab .sh{display:block}
+  .tab.on{color:var(--star)}.tab.on::after{left:25%;right:25%;top:-1px;bottom:auto}
+  main{padding:22px 16px calc(100px + env(safe-area-inset-bottom))}
+  h1{font-size:30px}.hero{padding:22px 20px}.big b{font-size:52px}.podium{grid-template-columns:1fr 1fr 1fr}.who{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="skyBg"></canvas><div id="skyGlow"></div><div class="grain"></div>
+<div id="app"></div>
+<script>
+const SUPABASE_URL = 'https://zwaipemeyefkxigohyof.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_BA9ZVTPRd5fIUZUxFgQesw_LR3JoX9r';
+const MEET_URL = '';   // lien Google Meet fixe (optionnel)
+const GOAL = 50, GOAL_RDV = 5, STREAK_GOAL = 30;
+const BUNNY_LIB = '815282'; // bibliothèque Bunny Stream (lecture limitée à ce domaine)
+
+/* fond étoilé */
+(function(){
+  const c = document.getElementById('skyBg'), x = c.getContext('2d'); let W,H,stars=[];
+  const size = () => { W=c.width=innerWidth; H=c.height=innerHeight; stars=Array.from({length:Math.round(W*H/9000)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.2,a:Math.random(),s:Math.random()*.012+.003,d:Math.random()*.08+.01})); };
+  size(); addEventListener('resize',size);
+  const still = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  (function f(){ x.clearRect(0,0,W,H); for(const s of stars){ s.a+=s.s; if(!still) s.y-=s.d*.15; if(s.y<0) s.y=H; x.globalAlpha=.25+.75*Math.abs(Math.sin(s.a)); x.fillStyle='#cfe0ff'; x.beginPath(); x.arc(s.x,s.y,s.r,0,6.283); x.fill(); } if(!still) requestAnimationFrame(f); })();
+})();
+
+const _H = new URLSearchParams(location.hash.slice(1));
+const AUTH_TYPE = _H.get('type'), AUTH_ERR = _H.get('error_description');
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ymd = d => { const z = new Date(d.getTime() - d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
+const today = () => ymd(new Date());
+const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const isWeekday = d => { const w = d.getDay(); return w >= 1 && w <= 5; };
+const initials = n => (String(n||'?').split(/[\s._-]+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
+const nf = n => Number(n).toLocaleString('fr-FR');
+
+let S = { user:null, profile:null, stats:{}, items:[], done:new Set(), lessons:[], ldone:new Set(), tab:'accueil', period:'jour', hp:'jour', ap:{k:'mois',from:'',to:''}, openLesson:null, editDay:null };
+
+async function init(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session) return renderLogin(AUTH_ERR ? 'Lien invalide ou expiré. Clique « Mot de passe oublié » pour en recevoir un nouveau.' : '');
+  S.user = session.user;
+  if(AUTH_TYPE === 'invite' || AUTH_TYPE === 'recovery') return renderSetPassword();
+  await loadAll();
+  const ht = location.hash.slice(1);
+  if(['accueil','formation','stats','profil'].includes(ht) || (ht === 'admin' && S.profile?.role === 'admin')) S.tab = ht;
+  if(ht==='saisie'||ht==='classement') S.tab = 'stats';
+  render();
+}
+
+function renderSetPassword(msg=''){
+  $app.innerHTML = `<main><div class="panel auth"><div class="brand"><i></i>GLOW STUDIO</div>
+  <h2 style="text-align:center;margin-bottom:6px">Choisis ton mot de passe</h2>
+  <p class="mut" style="text-align:center;margin:0 0 20px;font-size:14px">${esc(S.user.email||'')}</p>
+  <label>Nouveau mot de passe (8 caractères minimum)</label><input id="np" type="password" autocomplete="new-password">
+  <div style="height:14px"></div><label>Confirme-le</label><input id="np2" type="password" autocomplete="new-password">
+  <div style="height:22px"></div><button class="go" id="sp" style="width:100%;height:50px">Valider</button><div class="err">${esc(msg)}</div></div></main>`;
+  document.getElementById('sp').onclick = async () => {
+    const a = document.getElementById('np').value, b = document.getElementById('np2').value;
+    if(a.length < 8) return renderSetPassword('8 caractères minimum.');
+    if(a !== b) return renderSetPassword('Les deux mots de passe sont différents.');
+    const { error } = await sb.auth.updateUser({ password: a });
+    if(error) return renderSetPassword('Erreur : ' + error.message);
+    history.replaceState(null, '', location.pathname);
+    await loadAll(); render();
+  };
+}
+
+function renderLogin(msg=''){
+  $app.innerHTML = `<main><div class="panel auth"><div class="brand"><i></i>GLOW STUDIO</div>
+  <h2 style="text-align:center;margin-bottom:20px">Connexion</h2>
+  <label>E-mail</label><input id="em" type="email" autocomplete="username">
+  <div style="height:14px"></div><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
+  <div style="height:22px"></div><button class="go" id="go" style="width:100%;height:50px">Se connecter</button>
+  <div style="text-align:center;margin-top:14px"><button class="link" id="forgot">Mot de passe oublié ?</button></div><div class="err" id="lmsg">${esc(msg)}</div></div></main>`;
+  document.getElementById('forgot').onclick = async () => {
+    const em = document.getElementById('em').value.trim();
+    if(!em) return document.getElementById('lmsg').textContent = 'Saisis d\'abord ton e-mail ci-dessus.';
+    const { error } = await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + '/' });
+    const m = document.getElementById('lmsg'); m.style.color = error ? '' : 'var(--ok)';
+    m.textContent = error ? 'Erreur : ' + error.message : 'Si ce compte existe, un e-mail de réinitialisation vient d\'être envoyé.';
+  };
+  const go = async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('em').value.trim(), password: document.getElementById('pw').value });
+    if(error) renderLogin('Identifiants incorrects.'); else init();
+  };
+  document.getElementById('go').onclick = go;
+  document.getElementById('pw').onkeydown = e => { if(e.key==='Enter') go(); };
+}
+
+async function loadAll(){
+  const uid = S.user.id;
+  const [p, st, it, dn, ls, ld, rd, ac] = await Promise.all([
+    sb.from('profiles').select('*').eq('id', uid).single(),
+    sb.from('daily_stats').select('*').eq('user_id', uid),
+    sb.from('checklist_items').select('*').order('position'),
+    sb.from('checklist_done').select('item_id').eq('user_id', uid),
+    sb.from('lessons').select('*').order('position'),
+    sb.from('lessons_done').select('lesson_id').eq('user_id', uid),
+    sb.from('replays_done').select('replay_key').eq('user_id', uid),
+    sb.from('app_content').select('value').eq('key', 'private').maybeSingle()
+  ]);
+  S.profile = p.data;
+  S.stats = {}; (st.data||[]).forEach(r => S.stats[r.day] = r);
+  S.items = it.data||[]; S.done = new Set((dn.data||[]).map(r=>r.item_id));
+  S.lessons = ls.data||[]; S.ldone = new Set((ld.data||[]).map(r=>r.lesson_id));
+  S.rdone = new Set((rd.data||[]).map(r=>r.replay_key));
+  const c = ac.data?.value || {};
+  REPLAYS = c.replays || []; TOOLS = c.tools || []; SCRIPTS = c.scripts || [];
+  RDV_VIDEO = c.rdv_video || ''; CALENDLY = c.calendly || '';
+  FATHOM_URL = c.fathom_url || ''; FATHOM_CHAPTERS = c.fathom_chapters || [];
+  FATHOM_EMBED = FATHOM_URL.includes('/share/') ? FATHOM_URL.replace('/share/', '/embed/') : '';
+}
+
+const wdays = (a,b) => { let n=0; for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) if(isWeekday(d)) n++; return n; };
+function periodRange(k){
+  const n = new Date(), y = n.getFullYear(), m = n.getMonth();
+  if(k==='semaine'){ const f = new Date(n); f.setDate(n.getDate() - ((n.getDay()+6)%7)); const e = new Date(f); e.setDate(f.getDate()+6); return [ymd(f), ymd(e)]; }
+  if(k==='mois') return [ymd(new Date(y,m,1)), ymd(new Date(y,m+1,0))];
+  if(k==='dernier') return [ymd(new Date(y,m-1,1)), ymd(new Date(y,m,0))];
+  if(/^m:/.test(k)){ const [yy,mm] = k.slice(2).split('-').map(Number); return [ymd(new Date(yy,mm-1,1)), ymd(new Date(yy,mm,0))]; }
+  return [today(), today()];
+}
+
+function trialInfo(ts){
+  if(!ts) return null;
+  const el = Math.round((parse(today()) - parse(ts)) / 864e5);
+  return { el, day: el+1, left: Math.max(0, 30-el-1), start: ts };
+}
+
+function streak(){
+  let n = 0, d = new Date();
+  if(isWeekday(d)){ if((S.stats[today()]?.answered||0) >= GOAL) n++; }
+  for(let i=0;i<400;i++){
+    d.setDate(d.getDate()-1);
+    if(!isWeekday(d)) continue;
+    if((S.stats[ymd(d)]?.answered||0) >= GOAL) n++; else break;
+  }
+  return n;
+}
+
+function render(){
+  const admin = S.profile?.role === 'admin';
+  const ic = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const tabs = [
+    ['accueil','Aujourd\'hui','Accueil',ic('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>')],
+    ['formation','Formation','Formation',ic('<circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/>')],
+    ['stats','Stats & classement','Stats',ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
+    ['profil','Mon profil','Profil',ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>')]
+  ];
+  if(admin) tabs.push(['admin','Admin','Admin',ic('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')]);
+  $app.innerHTML = `<header class="app"><div class="brand"><i></i>GLOW STUDIO</div>
+  <nav class="tabs">${tabs.map(([k,l,s,i])=>`<button class="tab ${S.tab===k?'on':''}" data-t="${k}">${i}<span class="lg">${l}</span><span class="sh">${s}</span></button>`).join('')}</nav>
+  <span class="who">Salut ${esc(S.profile.name)}</span><button class="link" id="out">Déconnexion</button></header><main id="view"></main>`;
+  $app.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; history.replaceState(null, '', '#' + S.tab); render(); window.scrollTo(0,0); });
+  document.getElementById('out').onclick = async () => { await sb.auth.signOut(); renderLogin(); };
+  ({accueil:vAccueil, stats:vStats, formation:vFormation, profil:vProfil, admin:vAdmin})[S.tab]();
+}
+const view = () => document.getElementById('view');
+
+const fvid = (src, extra) => `<iframe src="${esc(src)}" allow="fullscreen" allowfullscreen style="aspect-ratio:16/9;width:100%;border:0;border-radius:12px;${extra||''}"></iframe>`;
+const lazyVid = (src, extra) => `<div role="button" tabindex="0" data-src="${esc(src)}" onclick="this.replaceWith(Object.assign(document.createElement('iframe'),{src:this.dataset.src,allow:'fullscreen',allowFullscreen:true,style:'aspect-ratio:16/9;width:100%;border:0;border-radius:12px'}))" style="aspect-ratio:16/9;display:grid;place-items:center;background:#060912;border:1px solid var(--line2);border-radius:12px;cursor:pointer;${extra||''}"><span class="btn" style="pointer-events:none">▶ Lancer la vidéo</span></div>`;
+// Contenus privés : chargés depuis la table app_content (comptes connectés uniquement). Ne rien écrire en dur ici.
+let REPLAYS = [];
+const repKey = r => r.url.split('/').pop();
+const REP_CATS = [['live','Lives hebdomadaires'],['jour','Appels journaliers']];
+function repInner(){
+  const cat = S.repCat || 'jour', list = REPLAYS.map((r,i)=>({r,i})).filter(x=>x.r.cat===cat);
+  const tabs = `<div class="sub" style="margin:0 0 14px">${REP_CATS.map(([k,l])=>`<button class="${cat===k?'on':''}" onclick="S.repCat='${k}';S.openRep=null;document.getElementById('repbox').innerHTML=repInner()">${l}</button>`).join('')}</div>`;
+  if(!list.length) return tabs + `<div class="panel" style="margin:0"><p class="mut" style="margin:0">Aucune rediffusion dans cette catégorie pour le moment.</p></div>`;
+  const cur = list.find(x=>x.i===S.openRep) || list[list.length-1], r = cur.r, emb = r.url.replace('/share/','/embed/'), seen = S.rdone.has(repKey(r));
+  return tabs + `<div class="fgrid">
+    <div class="panel" style="margin:0"><div class="vstick"><iframe style="aspect-ratio:16/9" src="${esc(emb)}" allow="fullscreen" allowfullscreen></iframe></div>
+    <div class="vmeta"><p class="faint" style="margin:16px 0 2px;font-size:13px;text-transform:uppercase;letter-spacing:.08em">${esc(r.date)} · ${esc(r.type)}</p><h2 style="margin:0 0 10px">${esc(r.title)}</h2>
+    <p class="mut" style="margin:0 0 14px;line-height:1.55">${esc(r.desc)}</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">Ouvrir sur Fathom ↗</a><button class="btn" onclick="var d=document.getElementById('rpl');d.hidden=!d.hidden;this.textContent=d.hidden?'☰ Voir le plan':'✕ Masquer le plan'">☰ Voir le plan</button>${r.axes?`<button class="btn" style="border-color:var(--gold,#d4b36a)" onclick="var d=document.getElementById('rax');d.hidden=!d.hidden;this.textContent=d.hidden?'★ Voir les axes d\u2019amélioration':'✕ Masquer les axes d\u2019amélioration'">★ Voir les axes d’amélioration</button>`:''}</div>
+    ${r.axes?`<div id="rax" hidden style="margin-top:14px">${r.axes.map(([h,li])=>`<h3 class="gold" style="margin:14px 0 6px;font-size:16px">${esc(h)}</h3><ul style="margin:0;padding-left:20px;line-height:1.6">${li.map(x=>`<li style="margin:0 0 6px">${esc(x)}</li>`).join('')}</ul>`).join('')}</div>`:''}
+    <div id="rpl" hidden style="margin-top:14px"><div class="todolist">${r.ch.map(([t,l])=>`<a class="chkrow" href="${esc(r.url)}?timestamp=${t}" target="_blank" rel="noopener" style="text-decoration:none;padding:9px 4px;font-size:15px"><span class="gold" style="min-width:52px;font-variant-numeric:tabular-nums;font-weight:600">${fmtT(t)}</span><span class="lbl">${esc(l)}</span></a>`).join('')}</div></div>
+    <label class="row" style="color:#fff;font-size:15px;margin:16px 0 0;gap:10px"><input type="checkbox" ${seen?'checked':''} onchange="repSeen(${cur.i},this.checked)">J'ai vu cette vidéo</label></div></div>
+    <div class="panel" style="margin:0;padding:14px 18px"><h2 style="margin:0 0 4px">Sommaire des rediffusions</h2>${list.map((x,n)=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.rdone.has(repKey(x.r))?'background:var(--ok)':''}"></span><span class="rk" style="min-width:22px">${String(n+1).padStart(2,'0')}</span><a href="#" onclick="S.openRep=${x.i};document.getElementById('repbox').innerHTML=repInner();return false" style="color:${x.i===cur.i?'#fff':'var(--dim)'};text-decoration:none;font-weight:${x.i===cur.i?700:500};flex:1">${esc(x.r.title)}<span class="faint" style="display:block;font-size:12.5px;font-weight:400">${esc(x.r.date)}</span></a></div>`).join('')}</div></div>`;
+}
+async function modSeen(k, on){
+  const key = 'module:'+k;
+  if(on){ await sb.from('replays_done').insert({user_id:S.user.id, replay_key:key}); S.rdone.add(key); }
+  else { await sb.from('replays_done').delete().eq('user_id',S.user.id).eq('replay_key',key); S.rdone.delete(key); }
+  vFormation();
+}
+async function repSeen(i, on){
+  const k = repKey(REPLAYS[i]);
+  if(on){ await sb.from('replays_done').insert({user_id:S.user.id, replay_key:k}); S.rdone.add(k); }
+  else { await sb.from('replays_done').delete().eq('user_id',S.user.id).eq('replay_key',k); S.rdone.delete(k); }
+  S.openRep = i; document.getElementById('repbox').innerHTML = repInner();
+}
+function replaysBlock(){
+  return `<h2 style="margin:34px 0 14px">Rediffusions des lives et réunions ponctuelles</h2><div id="repbox">${repInner()}</div>`;
+}
+
+function vAccueil(){
+  const st = streak();
+  const [pf, pt] = periodRange(S.hp); const prow = Object.values(S.stats).filter(r=>r.day>=pf && r.day<=pt);
+  const ans = prow.reduce((a,r)=>a+(r.answered||0),0), mt = prow.reduce((a,r)=>a+(r.meetings||0),0);
+  const nd = S.hp==='jour' ? 1 : wdays(parse(pf), parse(pt));
+  const gA = GOAL*nd, gM = GOAL_RDV*nd, W = {jour:"aujourd'hui", semaine:'cette semaine', mois:'ce mois-ci'}[S.hp];
+  const pct = Math.min(100, Math.round(ans/gA*100)), mpct = Math.min(100, Math.round(mt/gM*100));
+  const ld = S.lessons.filter(l=>S.ldone.has(l.id)).length, lleft = S.lessons.length - ld, lnext = S.lessons.find(l=>!S.ldone.has(l.id));
+  const dn = S.items.filter(i=>S.done.has(i.id)).length;
+  const roadDone = S.items.length > 0 && dn === S.items.length;
+  const h = new Date().getHours(); const hello = h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour';
+  const date = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const secs = []; S.items.forEach(i => { const k = i.section || 'À faire'; let s = secs.find(x=>x.k===k); if(!s){ s = {k, items:[]}; secs.push(s); } s.items.push(i); });
+  const row = i => { const d = S.done.has(i.id); return `<label class="chkrow ${d?'done':''}"><input type="checkbox" data-i="${i.id}" ${d?'checked':''}><span class="box"></span><span class="lbl">${esc(i.label)}</span></label>${i.video_id?`<div class="vbox" style="padding:10px 4px 16px;border-bottom:1px solid var(--line)"><button class="btn" data-v="${esc(i.video_id)}" style="height:38px">▶ Regarder la vidéo</button><div data-vw="${esc(i.video_id)}" style="margin-top:12px"></div></div>`:''}`; };
+  view().innerHTML = `
+  <p class="date">${date.charAt(0).toUpperCase()+date.slice(1)}</p>
+  <h1>${hello} ${esc(S.profile.name)}</h1>
+  <div class="acc"><div class="hero"><div class="l"><h3>Ta session d'appels</h3>
+    <div class="sub" style="margin:10px 0 4px">${[['jour',"Aujourd'hui"],['semaine','Cette semaine'],['mois','Ce mois-ci']].map(([k,l])=>`<button class="${S.hp===k?'on':''}" data-hp="${k}">${l}</button>`).join('')}</div>
+    <div class="two"><div><div class="big"><b>${ans}</b><span>sur ${gA} décrochés ${W}</span></div>
+    <div class="bar ${pct>=100?'ok':''}"><i style="width:${pct}%"></i></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${pct>=100?'Objectif atteint. Bien joué.':'Encore '+(gA-ans)+' décrochés pour atteindre ton objectif.'}</p></div>
+    <div><div class="big"><b>${mt}</b><span>sur ${gM} rendez-vous pris ${W}</span></div>
+    <div class="bar ${mpct>=100?'ok':''}"><i style="width:${mpct}%"></i></div>
+    <p class="faint" style="margin:10px 0 0;font-size:14px">${mpct>=100?'Objectif rendez-vous atteint. Bravo.':'Encore '+(gM-mt)+' rendez-vous pour atteindre ton objectif.'}</p></div></div></div>
+    <button class="go" id="goStats">Saisir mes chiffres</button></div>
+  </div><div class="tri">
+  <div class="panel"><h2>Ta formation</h2>
+    <div class="big" style="margin-top:10px"><b>${ld}</b><span>leçon${ld>1?'s':''} réalisée${ld>1?'s':''} · ${lleft===0?'formation terminée, bravo':lleft+' restante'+(lleft>1?'s':'')}</span></div>
+    <div class="bar ${lleft===0&&S.lessons.length?'ok':''}"><i style="width:${S.lessons.length?Math.round(ld/S.lessons.length*100):0}%"></i></div>
+    ${lnext?`<p class="faint" style="margin:10px 0 12px;font-size:14px">Prochaine : ${esc(lnext.title)}</p><button class="btn" id="goLesson" style="height:40px">Continuer la formation</button>`:''}</div>
+  ${(()=>{ const ti = trialInfo(S.profile.trial_start); let inner;
+    if(!ti) inner = '<p class="mut" style="margin:10px 0 0">Ta date de début n’a pas encore été fixée.</p>';
+    else if(ti.el < 0) inner = `<p style="margin:10px 0 0">Ta période d'essai commence le <b>${parse(ti.start).toLocaleDateString('fr-FR')}</b>.</p>`;
+    else if(ti.day > 30) inner = '<p style="margin:10px 0 0">Ta période d’essai de 30 jours est terminée.</p>';
+    else inner = `<div class="big" style="margin-top:10px"><b>Jour ${ti.day}</b><span>sur 30 · ${ti.left===0?'dernier jour':'il reste '+ti.left+' jour'+(ti.left>1?'s':'')}</span></div><div class="bar"><i style="width:${Math.round(ti.day/30*100)}%"></i></div>`;
+    return `<div class="panel"><h2>Période d'essai</h2>${inner}</div>`; })()}
+  <div class="panel"><h2>Rémunération</h2>
+    <div class="pay"><div><h3>Base</h3><div class="amt"><span class="gold">50 000 Ar</span> <span class="eur">(10 €)</span></div><p class="faint">par rendez-vous pris</p></div>
+    </div></div></div>
+  <div class="duo"><div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
+    <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Commission sur vente signée</h2>
+      <p style="margin:0;color:#e9dcb8"><b style="color:#ffe9a8">3 %</b> de chaque vente signée provenant de vos RDV.</p></div>
+    <div style="text-align:right"><div class="bamt">225 000 à 525 000 Ar</div><div class="eur">(45 à 105 €) par signature</div></div></div></div>
+  <div class="bonus"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px">
+    <div><span class="tag">★ BONUS</span><h2 style="margin:12px 0 4px">Série de ${STREAK_GOAL} jours</h2>
+      <p style="margin:0;color:#e9dcb8">${GOAL}+ décrochés par jour, du lundi au vendredi, ${STREAK_GOAL} jours ouvrés d'affilée.</p></div>
+    <div style="text-align:right"><div class="bamt">500 000 Ar</div><div class="eur">(100 €)</div></div></div>
+    <div class="big" style="margin-top:20px"><b style="font-size:40px;color:#ffe9a8">${Math.min(st,STREAK_GOAL)}</b><span style="color:#e9dcb8">/ ${STREAK_GOAL} jours</span></div>
+    <div class="bar gbar"><i style="width:${Math.min(100,st/STREAK_GOAL*100)}%"></i></div></div></div>
+  <div class="sec" style="margin-top:22px"><h2>Ta roadmap</h2><span>${dn}/${S.items.length}</span></div>
+  <div class="bar" style="margin:8px 0 4px"><i style="width:${S.items.length?dn/S.items.length*100:0}%"></i></div>
+  ${roadDone && !S.showRoad ? `<div class="panel" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><span class="mut">✅ Roadmap terminée, bravo !</span><button class="btn" id="goRoad">Ouvrir ma roadmap</button></div>` : (roadDone ? `<button class="btn" id="hideRoad" style="margin:10px 0 0">Masquer ma roadmap</button>` : '') + (secs.map(s=>`<h3 class="secdate">${esc(s.k)}</h3><div class="todolist">${s.items.map(row).join('')}</div>`).join('') || '<p class="mut">Aucune étape pour le moment.</p>')}
+  ${MEET_URL?`<div class="panel"><h2>Salle de motivation</h2><a class="btn" href="${esc(MEET_URL)}" target="_blank" rel="noopener">Rejoindre (caméra uniquement)</a></div>`:''}`;
+  view().querySelectorAll('[data-v]').forEach(b => b.onclick = () => {
+    const w = view().querySelector('[data-vw="'+b.dataset.v+'"]');
+    if(w.firstChild){ w.innerHTML = ''; b.textContent = '▶ Regarder la vidéo'; return; }
+    w.innerHTML = `<iframe style="aspect-ratio:16/9" src="https://iframe.mediadelivery.net/embed/${BUNNY_LIB}/${b.dataset.v}?preload=true" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe><p class="faint" style="font-size:13px;margin:8px 0 0">Astuce : la roue dentée du lecteur permet d’accélérer la vitesse.</p>`;
+    b.textContent = '✕ Fermer la vidéo';
+  });
+  view().querySelectorAll('[data-hp]').forEach(b => b.onclick = () => { S.hp = b.dataset.hp; vAccueil(); });
+  const gl = document.getElementById('goLesson'); if(gl) gl.onclick = () => { S.openLesson = lnext.id; S.tab='formation'; render(); window.scrollTo(0,0); };
+  document.getElementById('goStats').onclick = () => { S.tab='stats'; S.editDay=null; render(); };
+  const tog = async (id, on) => {
+    if(on){ await sb.from('checklist_done').insert({user_id:S.user.id,item_id:id}); S.done.add(id); }
+    else { await sb.from('checklist_done').delete().eq('user_id',S.user.id).eq('item_id',id); S.done.delete(id); }
+    S.showRoad = false;
+    vAccueil();
+  };
+  view().querySelectorAll('[data-i]').forEach(c => c.onchange = () => tog(+c.dataset.i, c.checked));
+  const gr = document.getElementById('goRoad'); if(gr) gr.onclick = () => { S.showRoad = true; vAccueil(); };
+  const hr = document.getElementById('hideRoad'); if(hr) hr.onclick = () => { S.showRoad = false; vAccueil(); };
+}
+
+function vStats(){
+  view().innerHTML = `<h1>Stats & classement</h1><div class="sec"><h2>Classement</h2></div><div id="sRank" style="margin-top:12px"></div><div class="sec" style="margin-top:34px"><h2>Mes stats</h2></div><div id="sSaisie" style="margin-top:12px"></div>`;
+  vSaisie(document.getElementById('sSaisie')); vClassement(document.getElementById('sRank'));
+}
+
+async function vSaisie(box){
+  const day = S.editDay || today(); const r = S.stats[day] || {};
+  box.innerHTML = `<div class="panel" style="margin-top:0"><h2>Saisie du jour</h2>
+    <div class="grid"><div><label>Date</label><input type="date" id="d" value="${day}" max="${today()}"></div>
+    <div><label>Appels passés</label><input type="number" min="0" id="c" value="${r.calls??''}"></div>
+    <div><label>Décrochés</label><input type="number" min="0" id="a" value="${r.answered??''}"></div>
+    <div><label>Rendez-vous pris</label><input type="number" min="0" id="m" value="${r.meetings??''}"></div></div>
+    <div class="row" style="margin-top:18px"><button class="btn pri" id="save">Enregistrer</button> <span id="msg" class="mut"></span></div></div>
+  <div class="panel"><h2>Historique des appels</h2><div id="last"></div></div>
+  <div class="panel"><h2>Historique des modifications</h2><div id="hist" class="mut">Chargement…</div></div>`;
+  const dEl = document.getElementById('d');
+  dEl.onchange = () => { S.editDay = dEl.value; vSaisie(box); };
+  document.getElementById('save').onclick = async () => {
+    const v = id => Math.max(0, parseInt(document.getElementById(id).value||'0',10) || 0);
+    const row = { user_id:S.user.id, day:dEl.value, calls:v('c'), answered:v('a'), meetings:v('m') };
+    if(row.answered > row.calls) return document.getElementById('msg').textContent = '⚠️ Décrochés ne peut pas dépasser les appels.';
+    if(row.meetings > row.answered) return document.getElementById('msg').textContent = '⚠️ Rendez-vous ne peut pas dépasser les décrochés.';
+    const { error } = await sb.from('daily_stats').upsert(row, { onConflict:'user_id,day' });
+    if(error) return document.getElementById('msg').textContent = 'Erreur : ' + error.message;
+    S.stats[row.day] = row; document.getElementById('msg').textContent = '✅ Enregistré'; histLoad(row.day); lastRender(); const rb = document.getElementById('sRank'); if(rb) vClassement(rb);
+  };
+  const histLoad = async d => {
+    const { data } = await sb.from('stat_history').select('*').eq('user_id',S.user.id).eq('day',d).order('changed_at',{ascending:false});
+    document.getElementById('hist').innerHTML = (data&&data.length) ? `<table><tr><th>Modifié le</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${data.map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')}</table>` : 'Aucune saisie pour cette date.';
+  };
+  const lastRender = () => {
+    const P = S.hper || 'semaine', now = new Date(), t = ymd(now), st = S.hc;
+    let from, to = t;
+    if(st.per){ [from, to] = rkRange(st); }
+    else if(P==='jour') from = t;
+    else if(P==='mois') from = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
+    else { const m = new Date(now); m.setDate(m.getDate() - ((m.getDay()+6)%7)); from = ymd(m); }
+    const rows = Object.values(S.stats).filter(r => r.day>=from && r.day<=to && (r.calls||r.answered||r.meetings)).sort((x,y)=> y.day<x.day ? -1 : 1);
+    const sum = k => rows.reduce((q,r)=>q+(r[k]||0),0);
+    const pk = rkPicker(st, lastRender);
+    const box2 = document.getElementById('last');
+    box2.innerHTML = `<div class="sub" style="margin:0 0 6px">${[['jour',"Aujourd'hui"],['semaine','Semaine'],['mois','Mois']].map(([k,l])=>`<button class="${!st.per&&P===k?'on':''}" data-hp2="${k}">${l}</button>`).join('')}${pk.btn}</div>${pk.panel}<div style="height:10px"></div>
+      <div class="row" style="gap:26px;margin:0 0 6px"><span><b style="font-size:22px">${nf(sum('calls'))}</b> <span class="mut">appels</span></span><span><b style="font-size:22px">${nf(sum('answered'))}</b> <span class="mut">décrochés</span></span><span><b class="gold" style="font-size:22px">${nf(sum('meetings'))}</b> <span class="mut">RDV</span></span></div>
+      ${rows.length ? `<table style="margin-top:6px"><tr><th>Date</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th></th></tr>${rows.map(s=>`<tr><td>${parse(s.day).toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td><td>${s.calls}</td><td>${s.answered>=GOAL?'<span class="gold">'+s.answered+'</span>':s.answered}</td><td>${s.meetings}</td><td style="text-align:right"><button class="btn" data-e="${s.day}" style="height:30px;padding:0 12px;font-size:13px">Modifier</button></td></tr>`).join('')}</table>` : '<p class="mut" style="margin:10px 0 0">Aucun appel enregistré sur cette période.</p>'}`;
+    box2.querySelectorAll('[data-hp2]').forEach(b => b.onclick = () => { S.hper = b.dataset.hp2; st.per = null; st.open = false; st.start = null; lastRender(); });
+    pk.bind(box2);
+    box2.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.editDay = b.dataset.e; vSaisie(box); window.scrollTo(0,0); });
+  };
+  histLoad(day); lastRender();
+}
+
+/* Sélecteur de période (raccourcis + calendrier) pour le classement */
+const RK_OPTS = [['hier','Hier'],['semprec','Semaine dernière'],['7j','7 derniers jours'],['4sem','4 dernières semaines'],['tout','Depuis toujours']];
+function rkRange(st){
+  const now = new Date(), t = ymd(now), P = st.per;
+  const mon = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay()+6)%7)); return x; };
+  const add = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+  if(P==='hier'){ const y = ymd(add(now,-1)); return [y,y]; }
+  if(P==='semprec'){ const m = add(mon(now),-7); return [ymd(m), ymd(add(m,6))]; }
+  if(P==='7j') return [ymd(add(now,-6)), t];
+  if(P==='4sem') return [ymd(add(now,-27)), t];
+  if(P==='tout') return ['2000-01-01', t];
+  return [st.cf || t, st.ct || st.cf || t];
+}
+function rkPicker(st, redo){
+  const now = new Date(), t = ymd(now), [from,to] = rkRange(st), P = st.per;
+  const fr = k => parse(k).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  const lbl = P==='custom' ? `${fr(from)}${to!==from?' → '+fr(to):''}` : (RK_OPTS.find(o=>o[0]===P)||[,''])[1];
+  const cm = st.m || new Date(now.getFullYear(), now.getMonth()-1, 1), nm = new Date(cm.getFullYear(), cm.getMonth()+1, 1);
+  const inR = k => P==='custom' && !st.start && k>=from && k<=to;
+  const month = m => {
+    const y = m.getFullYear(), mo = m.getMonth(), off = (new Date(y,mo,1).getDay()+6)%7, nd = new Date(y,mo+1,0).getDate();
+    let c = '<span></span>'.repeat(off);
+    for(let d=1; d<=nd; d++){ const k = ymd(new Date(y,mo,d)), fut = k>t, edge = st.start===k || (inR(k)&&(k===from||k===to)), mid = inR(k)&&!edge;
+      c += `<button ${fut?'disabled':''} data-rcd="${k}" style="height:34px;border:0;border-radius:9px;font:600 14px var(--ui);cursor:${fut?'default':'pointer'};background:${edge?'var(--gold,#d4b36a)':mid?'rgba(212,179,106,.22)':'transparent'};color:${edge?'#000':fut?'var(--faint)':'#fff'};opacity:${fut?.4:1}">${d}</button>`; }
+    return `<div style="min-width:0"><div style="text-align:center;font-weight:700;margin:0 0 8px;text-transform:capitalize">${m.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">${['L','M','M','J','V','S','D'].map(x=>`<span class="faint" style="font-size:12px">${x}</span>`).join('')}${c}</div></div>`;
+  };
+  const nxtDis = nm >= new Date(now.getFullYear(), now.getMonth(), 1);
+  const pre = RK_OPTS.map(([k,l])=>`<button data-rhp="${k}" style="text-align:left;border:0;background:${P===k?'rgba(212,179,106,.14)':'transparent'};color:${P===k?'#fff':'var(--dim)'};font:${P===k?700:500} 14px var(--ui);padding:9px 10px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;gap:10px">${l}${P===k?'<span class="gold">✓</span>':''}</button>`).join('');
+  const panel = st.open ? `<div class="panel" style="margin:12px 0 0;padding:14px 16px"><div style="display:flex;gap:20px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:170px">${pre}</div><div style="flex:1;min-width:260px"><div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 10px"><button class="btn" data-rcn="-1" style="height:32px;padding:0 12px">‹</button><span class="mut" style="font-size:13px">${st.start?'Clique sur la date de fin':'Ou choisis une période : date de début'}</span><button class="btn" data-rcn="1" style="height:32px;padding:0 12px" ${nxtDis?'disabled':''}>›</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px">${month(cm)}${nm<=now?month(nm):''}</div></div></div></div>` : '';
+  const btn = `<button class="${P?'on':''}" id="rkCal">📅 ${P?esc(lbl):'Période'} ▾</button>`;
+  const bind = root => {
+    const q = sel => root.querySelectorAll(sel);
+    const cal = root.querySelector('#rkCal'); if(cal) cal.onclick = () => { st.open = !st.open; st.start = null; redo(); };
+    q('[data-rhp]').forEach(b => b.onclick = () => { st.per = b.dataset.rhp; st.open = false; st.start = null; redo(true); });
+    q('[data-rcn]').forEach(b => b.onclick = () => { st.m = new Date(cm.getFullYear(), cm.getMonth()+(+b.dataset.rcn), 1); redo(); });
+    q('[data-rcd]').forEach(b => b.onclick = () => { const k = b.dataset.rcd;
+      if(!st.start){ st.start = k; redo(); }
+      else { const a = st.start<=k?st.start:k, z = st.start<=k?k:st.start; st.cf = a; st.ct = z; st.per = 'custom'; st.start = null; st.open = false; redo(true); } });
+  };
+  return {btn, panel, bind};
+}
+S.rkc = {per:null, cf:'', ct:'', open:false, start:null, m:null};
+S.hc = {per:null, cf:'', ct:'', open:false, start:null, m:null};
+
+async function vClassement(box){
+  const st = S.rkc, pk = rkPicker(st, () => vClassement(box));
+  box.innerHTML = `<div class="sub">${[['jour','Aujourd\'hui'],['semaine','Semaine'],['mois','Mois']].map(([k,l])=>`<button class="${!st.per&&S.period===k?'on':''}" data-p="${k}">${l}</button>`).join('')}${pk.btn}</div>${pk.panel}<div id="rk" class="mut">Chargement…</div>`;
+  box.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.period = b.dataset.p; st.per = null; st.open = false; vClassement(box); });
+  pk.bind(box);
+  const now = new Date(); let from = new Date(now), toD = ymd(now);
+  if(S.period==='semaine') from.setDate(now.getDate() - ((now.getDay()+6)%7));
+  if(S.period==='mois') from = new Date(now.getFullYear(), now.getMonth(), 1);
+  let fromS = ymd(from);
+  if(st.per){ [fromS, toD] = rkRange(st); }
+  const { data, error } = await sb.rpc('get_ranking', { p_from: fromS, p_to: toD });
+  if(error) return box.querySelector('#rk').textContent = error.message;
+  const list = data||[]; const i = list.findIndex(x=>x.user_id===S.user.id);
+  const me = i>=0 ? list[i] : null;
+  let html = '';
+  if(me){
+    const ahead = i>0 ? list[i-1] : null, behind = i<list.length-1 ? list[i+1] : null;
+    const gapTxt = a => { const g = a.meetings - me.meetings; return g>0 ? `Encore <span class="gold">${g} RDV</span> pour lui passer devant.` : `À égalité en RDV : <span class="gold">${Math.max(1,a.answered-me.answered+1)} décrochés</span> pour le dépasser.`; };
+    html += `<div class="grid" style="grid-template-columns:1.4fr 1fr">
+      <div class="panel hero" style="margin:0;display:block"><div class="row" style="gap:18px;flex-wrap:nowrap"><span class="av lg">${esc(initials(me.name))}</span><div>
+        <h3 style="margin:0">Cold caller</h3><div style="font-size:26px;font-weight:700;letter-spacing:-.03em">${esc(me.name)}</div></div></div>
+        <div class="row" style="margin-top:16px;gap:18px"><span style="font-size:30px;font-weight:700">#${me.rank}</span><span class="mut">sur ${list.length}</span><span><span class="gold" style="font-size:22px">${nf(me.meetings)}</span> <span class="mut">RDV</span></span><span><b>${nf(me.answered)}</b> <span class="mut">décrochés</span></span></div></div>
+      <div class="panel" style="margin:0"><h3>Ta prochaine cible</h3>${ahead?`<div class="row" style="flex-wrap:nowrap;margin:10px 0"><span class="av">${esc(initials(ahead.name))}</span><div><b>${esc(ahead.name)}</b><div class="faint rk">#${ahead.rank} · ${nf(ahead.meetings)} RDV</div></div></div><p style="margin:0 0 8px">${gapTxt(ahead)}</p>`:'<p style="margin:10px 0">🏆 Tu es en tête. Garde la place.</p>'}
+        ${behind?`<p class="faint" style="margin:0;font-size:13.5px">${esc(behind.name)} est à ${Math.max(0,me.meetings-behind.meetings)} RDV derrière toi.</p>`:''}</div></div>`;
+  }
+  const top = list.slice(0,3);
+  if(top.length){
+    const order = top.length===3 ? [1,0,2] : top.map((_,k)=>k);
+    html += `<div class="podium">${order.map(k=>{ const r=top[k]; return `<div class="p ${k===0?'first':''}"><span class="av ${k===0?'lg gold':''}">${esc(initials(r.name))}</span><b>${esc(r.name)}</b><div class="pts">${nf(r.meetings)} <small>RDV</small></div><small>#${r.rank} · ${nf(r.answered)} décrochés</small></div>`; }).join('')}</div>`;
+  }
+  const show = new Set(); if(i>=0){ [i-1,i,i+1].forEach(k=>{ if(k>=0&&k<list.length) show.add(k); }); }
+  const idx = [...show].sort((a,b)=>a-b).filter(k=>k>=3);
+  if(idx.length){
+    html += '<div class="panel"><table><tr><th>#</th><th>Nom</th><th>RDV</th><th>Décrochés</th><th>Appels</th></tr>'; let prev=2;
+    idx.forEach(k=>{ const r = list[k]; if(k>prev+1) html += '<tr><td colspan="5" class="faint" style="text-align:center">···</td></tr>';
+      html += `<tr class="${r.user_id===S.user.id?'me':''}"><td class="rk">${r.rank}</td><td>${esc(r.name)}${r.user_id===S.user.id?' <span class="pill">toi</span>':''}</td><td class="gold">${nf(r.meetings)}</td><td>${nf(r.answered)}</td><td>${nf(r.calls)}</td></tr>`; prev=k; });
+    html += '</table></div>';
+  }
+  box.querySelector('#rk').innerHTML = html + '<p class="faint" style="font-size:13px;margin-top:18px">Classement : rendez-vous pris, puis décrochés.</p>';
+}
+
+let TOOLS = [];
+let SCRIPTS = [];
+let RDV_VIDEO = '', CALENDLY = '';
+const rdvBlock = () => `<div class="panel" style="margin-top:12px"><h2 style="margin:0 0 12px">Comment réserver un RDV pris dans nos agendas</h2>
+  <ul class="mut" style="margin:0 0 14px;padding-left:20px;line-height:1.7"><li>Cette vidéo explique aussi comment ajouter des associés à l’appel.</li><li>Elle explique aussi quoi faire si le prospect nous demande de l’inviter sur un autre e-mail : on met les deux.</li><li>Pense à régler le fuseau horaire sur <b>Central European Time</b> (heure de la France), comme sur la capture ci-dessous.</li></ul>
+  <img src="fuseau-horaire.png" alt="Fuseau horaire Calendly : Central European Time" style="display:block;max-width:300px;width:100%;border-radius:12px;border:1px solid var(--line2);margin:0 0 16px">
+  <a class="btn" href="${CALENDLY}" target="_blank" rel="noopener" style="height:42px">Ouvrir le Calendly ↗</a>
+  <p class="faint" style="margin:10px 0 0;font-size:14px;word-break:break-all">Lien : <a href="${CALENDLY}" target="_blank" rel="noopener" style="color:#fff">${CALENDLY}</a></p>
+  <iframe style="aspect-ratio:16/9;margin-top:16px" src="https://iframe.mediadelivery.net/embed/${BUNNY_LIB}/${RDV_VIDEO}?preload=true&autoplay=false" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+let FATHOM_URL = '', FATHOM_EMBED = '', FATHOM_CHAPTERS = [];
+const fmtT = t => { const h = Math.floor(t/3600), m = Math.floor(t%3600/60), sec = t%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(sec).padStart(2,'0'); };
+const fathomChapters = () => `<div id="fp0" hidden style="margin:0 0 14px"><h3 style="margin:0 0 6px;font-size:15px">Chapitres du live</h3><div class="todolist">${FATHOM_CHAPTERS.map(([t,l])=>`<a class="chkrow" href="${esc(FATHOM_URL)}?timestamp=${t}" target="_blank" rel="noopener" style="text-decoration:none;padding:9px 4px;font-size:15px"><span class="gold" style="min-width:52px;font-variant-numeric:tabular-nums;font-weight:600">${fmtT(t)}</span><span class="lbl">${esc(l)}</span></a>`).join('')}</div></div>`;
+const finalMod = () => `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length).padStart(2,'0')} · Finalisation de votre apprentissage</h2></div>
+  <div class="panel" style="margin-top:12px"><span class="faint" style="font-size:13px">Fathom · Replay</span><b style="font-size:17px;margin:4px 0 8px;display:block">Live d’onboarding Cold Caller : le replay</b>
+  <p class="mut" style="margin:0 0 14px;line-height:1.55">Pour obtenir la transcription du live, clique sur « Voir le replay en détail » ci-dessous, puis sur l’onglet « Transcript ».</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"><a class="btn" href="${esc(FATHOM_URL)}" target="_blank" rel="noopener">Voir le replay en détail ↗</a><button class="btn" onclick="var d=document.getElementById('fp0');d.hidden=!d.hidden;this.textContent=d.hidden?'☰ Voir le plan':'✕ Masquer le plan'">☰ Voir le plan</button></div>${fathomChapters()}${FATHOM_EMBED ? fvid(FATHOM_EMBED) : ''}</div>`;
+const toolbox = () => `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length+1).padStart(2,'0')} · Boîte à outils</h2><span class="pill">Dernier module</span></div>${rdvBlock()}
+  <div class="grid" style="margin-top:12px">${SCRIPTS.map(([n,t,u],k)=>k===0 ? `<a class="panel tool main" href="${esc(u)}" target="_blank" rel="noopener" style="grid-column:1/-1"><span class="tag">★ SCRIPT PRINCIPAL</span><span style="font-size:13px;color:#e9dcb8;display:block;margin-top:10px">${esc(t)} · à utiliser en priorité</span><b style="font-size:21px;margin:4px 0 14px;display:block;color:#fff">${esc(n)}</b><span class="gold" style="font-weight:700">Ouvrir le script →</span></a>` : `<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener" style="opacity:.8"><span class="faint" style="font-size:13px">Secondaire · ${esc(t)}</span><b style="font-size:16px;margin:4px 0 14px;display:block;font-weight:600">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
+
+function vFormation(){
+  if(!S.lessons.length){ view().innerHTML = '<h1>Formation</h1><div class="panel" style="margin-top:0">Aucune leçon pour le moment.</div>' + finalMod() + replaysBlock() + toolbox(); return; }
+  const sp = S.openLesson==='final' || S.openLesson==='tools';
+  const cur = S.lessons.find(l=>l.id===S.openLesson) || S.lessons[0];
+  const dn = S.lessons.filter(l=>S.ldone.has(l.id)).length;
+  view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
+    <div class="fgrid">
+    ${sp ? `<div class="fleft">${S.openLesson==='final' ? finalMod() : toolbox()}<label class="row" style="color:#fff;font-size:15px;margin:18px 0 0;gap:10px"><input type="checkbox" ${S.rdone.has('module:'+S.openLesson)?'checked':''} onchange="modSeen('${S.openLesson}',this.checked)">J'ai vu cette vidéo</label></div>` : `<div class="panel" style="margin:0"><div class="vstick"><iframe style="aspect-ratio:16/9" src="${cur.youtube_id.length > 15 ? 'https://iframe.mediadelivery.net/embed/'+BUNNY_LIB+'/'+esc(cur.youtube_id)+'?preload=true&autoplay=false' : 'https://www.youtube-nocookie.com/embed/'+esc(cur.youtube_id)+'?rel=0&modestbranding=1'}" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <div class="vmeta"><p class="faint" style="margin:16px 0 2px;font-size:13px;text-transform:uppercase;letter-spacing:.08em">Module ${String(S.lessons.indexOf(cur)).padStart(2,'0')}</p><h2 style="margin:0 0 10px">${esc(cur.title)}</h2>
+    ${cur.description?`<p class="mut" style="margin:0 0 14px;line-height:1.55">${esc(cur.description)}</p>`:''}
+    <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div></div>`}
+    <div class="panel" style="margin:0;padding:14px 18px"><h2 style="margin:0 0 4px">Sommaire</h2>${S.lessons.map((l,n)=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><span class="rk" style="min-width:22px">${String(n).padStart(2,'0')}</span><a href="#" data-l="${l.id}" style="color:${!sp&&l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${!sp&&l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}${[['final','Finalisation de votre apprentissage'],['tools','Boîte à outils']].map(([k,t],j)=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.rdone.has('module:'+k)?'background:var(--ok)':'opacity:.35'}"></span><span class="rk" style="min-width:22px">${String(S.lessons.length+j).padStart(2,'0')}</span><a href="#" data-l="${k}" style="color:${S.openLesson===k?'#fff':'var(--dim)'};text-decoration:none;font-weight:${S.openLesson===k?700:500};flex:1">${t}</a></div>`).join('')}</div></div>` + replaysBlock();
+  view().querySelectorAll('[data-l]').forEach(a => a.onclick = e => { e.preventDefault(); S.openLesson = isNaN(+a.dataset.l) ? a.dataset.l : +a.dataset.l; vFormation(); });
+  const seenEl = document.getElementById('seen'); if(seenEl) seenEl.onchange = async e => {
+    if(e.target.checked){ await sb.from('lessons_done').insert({user_id:S.user.id,lesson_id:cur.id}); S.ldone.add(cur.id); }
+    else { await sb.from('lessons_done').delete().eq('user_id',S.user.id).eq('lesson_id',cur.id); S.ldone.delete(cur.id); }
+    vFormation();
+  };
+}
+
+const PFIELDS = [
+  ['strengths_perso','Mes forces (personnelles)'],['weaknesses_perso','Mes faiblesses (personnelles)'],
+  ['strengths_cc','Mes forces en cold calling'],['weaknesses_cc','Mes faiblesses en cold calling'],
+  ['goals_30d','Mes objectifs à 30 jours'],['goals_3m','Mes objectifs à 3 mois']
+];
+
+async function vProfil(){
+  view().innerHTML = '<h1>Mon profil</h1><div class="panel" style="margin-top:0">Chargement…</div>';
+  const { data } = await sb.from('profile_answers').select('*').eq('user_id', S.user.id).maybeSingle();
+  const a = data || {};
+  view().innerHTML = `<h1>Mon profil</h1>
+  <div class="note"><span>🔒</span><span>Ce que tu écris ici n'influence <b>en rien</b> ta période d'essai. C'est uniquement pour adapter les retours et les feedbacks qu'on te donne à ton profil.</span></div>
+  <div class="panel" style="margin-top:0">${PFIELDS.map(([k,l])=>`<div style="margin-bottom:18px"><label>${l}</label><textarea id="pf_${k}">${esc(a[k]||'')}</textarea></div>`).join('')}
+    <div class="row"><button class="btn pri" id="pfSave">Enregistrer</button><span id="pfMsg" class="mut"></span></div></div>`;
+  document.getElementById('pfSave').onclick = async () => {
+    const row = { user_id:S.user.id, updated_at:new Date().toISOString() };
+    PFIELDS.forEach(([k]) => row[k] = document.getElementById('pf_'+k).value.trim());
+    const { error } = await sb.from('profile_answers').upsert(row, { onConflict:'user_id' });
+    document.getElementById('pfMsg').textContent = error ? 'Erreur : ' + error.message : '✅ Enregistré';
+  };
+}
+
+async function vAdmin(){
+  if(S.profile?.role !== 'admin'){ S.tab = 'accueil'; return render(); }
+  view().innerHTML = '<h1>Admin</h1><div class="panel" style="margin-top:0">Chargement…</div>';
+  const { data: links } = await sb.from('admin_links').select('*').order('position');
+  const linksHtml = (links||[]).length ? `<div class="panel" style="margin-top:0"><h2>Accès rapides</h2><div class="grid" style="margin-top:6px">${links.map(l=>`<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener" style="justify-content:flex-start;height:auto;min-height:44px;padding:10px 14px;text-align:left;text-decoration:none">${esc(l.label)} ↗</a>`).join('')}</div></div>` : '';
+  const A = S.ap; let [af, at] = A.k==='perso' ? [A.from||today(), A.to||today()] : periodRange(A.k);
+  if(af>at) [af,at] = [at,af];
+  const [pr, st, cd, ld, hs, pa] = await Promise.all([
+    sb.from('profiles').select('*').order('name'),
+    sb.from('daily_stats').select('*').gte('day', af).lte('day', at),
+    sb.from('checklist_done').select('user_id'), sb.from('lessons_done').select('user_id'),
+    sb.from('stat_history').select('*').order('changed_at',{ascending:false}).limit(100),
+    sb.from('profile_answers').select('*')
+  ]);
+  const nameOf = id => (pr.data||[]).find(p=>p.id===id)?.name || '?';
+  const t = today();
+  const sumAll = k => (st.data||[]).reduce((a,s)=>a+(s[k]||0),0);
+  const mlist = []; for(let i=2;i<=13;i++){ const d = new Date(new Date().getFullYear(), new Date().getMonth()-i, 1); mlist.push(['m:'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})]); }
+  const pbar = `<div class="sub" style="margin:10px 0 12px;flex-wrap:wrap">${[['jour',"Aujourd'hui"],['semaine','Cette semaine'],['mois','Ce mois-ci'],['dernier','Mois dernier']].map(([k,l])=>`<button class="${A.k===k?'on':''}" data-ap="${k}">${l}</button>`).join('')}<select id="apm" style="max-width:190px"><option value="">Mois précédents…</option>${mlist.map(([v,l])=>`<option value="${v}" ${A.k===v?'selected':''}>${l}</option>`).join('')}</select><button class="${A.k==='perso'?'on':''}" data-ap="perso">Période perso</button></div>
+    ${A.k==='perso'?`<div class="row" style="gap:10px;margin:0 0 12px">Du <input type="date" id="apf" value="${af}" style="max-width:170px"> au <input type="date" id="apt" value="${at}" style="max-width:170px"></div>`:''}`;
+  const rows = (pr.data||[]).filter(p=>p.role==='caller').map(p=>{
+    const mine = (st.data||[]).filter(s=>s.user_id===p.id); const sum = k => mine.reduce((a,s)=>a+s[k],0);
+    const td = mine.find(s=>s.day===t);
+    return `<tr><td><div class="row" style="flex-wrap:nowrap"><span class="av" style="width:34px;height:34px;font-size:13px;border-radius:10px">${esc(initials(p.name))}</span>${esc(p.name)}</div></td><td>${td?td.answered:'-'}</td><td>${sum('calls')}</td><td>${sum('answered')}</td><td class="gold">${sum('meetings')}</td><td>${(cd.data||[]).filter(x=>x.user_id===p.id).length}/${S.items.length}</td><td>${(ld.data||[]).filter(x=>x.user_id===p.id).length}/${S.lessons.length}</td></tr>`;
+  }).join('');
+  view().innerHTML = `<h1>Admin</h1>${linksHtml}<div class="panel" ${linksHtml?'':'style="margin-top:0"'}><h2>Cold callers · du ${parse(af).toLocaleDateString('fr-FR')} au ${parse(at).toLocaleDateString('fr-FR')}</h2>${pbar}<div style="overflow:auto"><table><tr><th>Nom</th><th>Décrochés auj.</th><th>Appels</th><th>Décrochés</th><th>RDV</th><th>Roadmap</th><th>Vidéos</th></tr>${rows ? `<tr style="font-weight:700"><td>Total</td><td>-</td><td>${sumAll('calls')}</td><td>${sumAll('answered')}</td><td class="gold">${sumAll('meetings')}</td><td>-</td><td>-</td></tr>`+rows : '<tr><td colspan=7>Aucun cold caller.</td></tr>'}</table></div>
+  <p class="faint" style="font-size:13px;margin:16px 0 0">Ajout d'un cold caller : Supabase → Authentication → Add user (cocher « Auto confirm »).</p></div>
+  <div class="panel"><h2>Périodes d'essai (30 jours)</h2><div style="overflow:auto"><table><tr><th>Nom</th><th>Début de l'essai</th><th>Avancement</th></tr>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const ti = trialInfo(p.trial_start); const txt = !ti ? '<span class="faint">À définir</span>' : ti.el<0 ? 'Commence le '+parse(ti.start).toLocaleDateString('fr-FR') : ti.day>30 ? 'Terminé' : 'Jour '+ti.day+' / 30'; return `<tr><td>${esc(p.name)}</td><td><input type="date" data-ts="${p.id}" value="${p.trial_start||''}" style="max-width:170px"></td><td data-tx="${p.id}">${txt}</td></tr>`; }).join('')||'<tr><td colspan=3 class="faint">Aucun cold caller.</td></tr>'}</table></div><p id="tsmsg" class="faint" style="font-size:13px;margin:12px 0 0">Choisis la date : elle s'enregistre toute seule.</p></div>
+  <div class="panel"><h2>Historique des modifications</h2><div style="overflow:auto"><table><tr><th>Modifié le</th><th>Nom</th><th>Jour</th><th>Appels</th><th>Décrochés</th><th>RDV</th></tr>${(hs.data||[]).map(h=>`<tr><td>${new Date(h.changed_at).toLocaleString('fr-FR')}</td><td>${esc(nameOf(h.user_id))}</td><td>${parse(h.day).toLocaleDateString('fr-FR')}</td><td>${h.calls}</td><td>${h.answered}</td><td>${h.meetings}</td></tr>`).join('')||'<tr><td colspan=6 class="faint">Aucune modification.</td></tr>'}</table></div></div>
+  <div class="panel"><h2>Profils des cold callers</h2>${(pr.data||[]).filter(p=>p.role==='caller').map(p=>{ const a=(pa.data||[]).find(x=>x.user_id===p.id); return `<details class="ans"><summary>${esc(p.name)} <span class="faint" style="font-weight:400">${a?'· rempli le '+new Date(a.updated_at).toLocaleDateString('fr-FR'):'· pas encore rempli'}</span></summary>${a?`<dl>${PFIELDS.map(([k,l])=>`<dt>${l}</dt><dd>${esc(a[k]||'—')}</dd>`).join('')}</dl>`:''}</details>`; }).join('') || '<p class="faint">Aucun cold caller.</p>'}</div>`;
+  view().querySelectorAll('[data-ap]').forEach(b => b.onclick = () => { S.ap = { k:b.dataset.ap, from:af, to:at }; vAdmin(); });
+  const apm = document.getElementById('apm'); if(apm) apm.onchange = () => { if(apm.value){ S.ap = { k:apm.value, from:'', to:'' }; vAdmin(); } };
+  const apf = document.getElementById('apf'), apt = document.getElementById('apt');
+  if(apf) apf.onchange = apt.onchange = () => { S.ap = { k:'perso', from:apf.value||af, to:apt.value||at }; vAdmin(); };
+  view().querySelectorAll('[data-ts]').forEach(i => i.onchange = async () => {
+    const v = i.value || null; const m = document.getElementById('tsmsg');
+    const { error } = await sb.from('profiles').update({ trial_start: v }).eq('id', i.dataset.ts);
+    if(error){ m.textContent = 'Erreur : ' + error.message; return; }
+    const ti = trialInfo(v); view().querySelector('[data-tx="'+i.dataset.ts+'"]').textContent = !ti ? 'À définir' : ti.el<0 ? 'Commence le '+parse(ti.start).toLocaleDateString('fr-FR') : ti.day>30 ? 'Terminé' : 'Jour '+ti.day+' / 30';
+    m.textContent = '✅ Enregistré';
+  });
+}
+
+init();
+</script>
+</body>
+</html>
