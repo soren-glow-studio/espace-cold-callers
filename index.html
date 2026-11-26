@@ -577,18 +577,77 @@ const finalMod = () => `<div class="sec" style="margin-top:40px"><h2>Module ${St
 const toolbox = () => `<div class="sec" style="margin-top:40px"><h2>Module ${String(S.lessons.length+1).padStart(2,'0')} · Boîte à outils</h2><span class="pill">Dernier module</span></div>${rdvBlock()}
   <div class="grid" style="margin-top:12px">${SCRIPTS.map(([n,t,u],k)=>k===0 ? `<a class="panel tool main" href="${esc(u)}" target="_blank" rel="noopener" style="grid-column:1/-1"><span class="tag">★ SCRIPT PRINCIPAL</span><span style="font-size:13px;color:#e9dcb8;display:block;margin-top:10px">${esc(t)} · à utiliser en priorité</span><b style="font-size:21px;margin:4px 0 14px;display:block;color:#fff">${esc(n)}</b><span class="gold" style="font-weight:700">Ouvrir le script →</span></a>` : `<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener" style="opacity:.8"><span class="faint" style="font-size:13px">Secondaire · ${esc(t)}</span><b style="font-size:16px;margin:4px 0 14px;display:block;font-weight:600">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}${TOOLS.map(([n,t,u])=>`<a class="panel tool" href="${esc(u)}" target="_blank" rel="noopener"><span class="faint" style="font-size:13px">${esc(t)}</span><b style="font-size:17px;margin:4px 0 14px;display:block">${esc(n)}</b><span class="silver">Ouvrir</span></a>`).join('')}</div>`;
 
+/* ===== Recherche dans la formation ===== */
+const fsNorm = t => Array.from(String(t||''), c => (c==='’' ? "'" : c.normalize('NFD')[0].toLowerCase())).join('');
+const FS_SYN = [['prix','tarif','tarification','pourcentage','budget'],['rdv','rendez-vous','calendly','agenda'],['ia','robot'],['pac','pompe a chaleur','pompes a chaleur'],['accroche','ouverture'],['fuseau','horaire','central european time'],['voix','ton','intonation','energie'],['numero','allo','power dialer']];
+function fsTerms(q){
+  return fsNorm(q).split(/\s+/).filter(w => w.length > 1).map(w => { const g = FS_SYN.find(g => g.includes(w)); return g || [w]; });
+}
+const fsRe = v => new RegExp('(^|[^a-z0-9])(' + v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + (v.length <= 3 ? 's?(?![a-z0-9]))' : ')'), 'g');
+const fsHit = (text, terms) => { const n = fsNorm(text); return terms.every(g => g.some(v => fsRe(v).test(n))); };
+function fsMark(text, terms){
+  const chars = Array.from(String(text||'')), n = fsNorm(text), on = new Array(chars.length).fill(false);
+  terms.forEach(g => g.forEach(v => { for(const m of n.matchAll(fsRe(v))){ const a = m.index + m[1].length; for(let i=a;i<a+m[2].length;i++) on[i] = true; } }));
+  let out = '', i = 0;
+  while(i < chars.length){ let j = i; while(j < chars.length && on[j] === on[i]) j++; const part = esc(chars.slice(i,j).join('')); out += on[i] ? `<mark style="background:rgba(212,179,106,.3);color:#fff;border-radius:3px;padding:0 1px">${part}</mark>` : part; i = j; }
+  return out;
+}
+const fsRow = (label, html, onclick, href) => `<div class="chkrow" style="padding:9px 4px;font-size:15px;cursor:default;align-items:flex-start;gap:12px">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener" class="gold" style="min-width:64px;font-weight:600;text-decoration:none;font-variant-numeric:tabular-nums">▶ ${label}</a>` : `<span class="faint" style="min-width:64px;font-size:13px">${label}</span>`}<a href="#" onclick="${onclick};return false" style="flex:1;color:#fff;text-decoration:none;line-height:1.5">${html}</a></div>`;
+function fsResults(q){
+  const terms = fsTerms(q);
+  if(!terms.length) return `<p class="faint" style="margin:0 0 8px;font-size:13px">Idées de recherche</p><div style="display:flex;gap:8px;flex-wrap:wrap">${['Prix','Accroche','IA','Script','Rendez-vous','Fuseau horaire','Objection','Voix'].map(w=>`<button class="btn" style="height:32px;padding:0 12px;font-size:13px" onclick="fsSet('${w}')">${w}</button>`).join('')}</div>`;
+  const secs = []; let total = 0;
+  const add = (title, rows) => { if(rows.length){ total += rows.length; secs.push(`<h3 class="gold" style="margin:16px 0 4px;font-size:14px;text-transform:uppercase;letter-spacing:.06em">${title} · ${rows.length}</h3>${rows.join('')}`); } };
+  add('Leçons de formation', S.lessons.map((l,n) => fsHit(l.title+' '+(l.description||''), terms) ? fsRow('Module '+String(n).padStart(2,'0'), fsMark(l.title,terms) + (l.description?`<span class="mut" style="display:block;font-size:13.5px">${fsMark(l.description,terms)}</span>`:''), `fsGo(${l.id})`) : '').filter(Boolean));
+  const reps = []; let nrep = 0;
+  REPLAYS.map((r,i)=>({r,i})).reverse().forEach(({r,i}) => {
+    const rows = [];
+    r.ch.forEach(([t,l]) => { if(fsHit(l,terms)) rows.push(fsRow(fmtT(t), fsMark(l,terms), `fsRep(${i},'rpl')`, r.url+'?timestamp='+t)); });
+    (r.axes||[]).forEach(([h,li]) => li.forEach(x => { if(fsHit(h+' '+x,terms)) rows.push(fsRow('Conseil', `<span class="mut">${fsMark(h,terms)} : </span>${fsMark(x,terms)}`, `fsRep(${i},'rax')`)); }));
+    const head = fsHit(r.title+' '+r.desc, terms);
+    if(!rows.length && !head) return;
+    nrep += rows.length || 1;
+    reps.push(`<div style="margin:10px 0 0;padding:10px 14px 4px;border:1px solid var(--line2);border-radius:12px"><a href="#" onclick="fsRep(${i});return false" style="color:#fff;text-decoration:none;font-weight:700">${fsMark(r.title,terms)}</a><span class="faint" style="display:block;font-size:12.5px">${esc(r.date)} · ${esc(r.type)}</span>${head?`<p class="mut" style="margin:6px 0;font-size:13.5px">${fsMark(r.desc,terms)}</p>`:''}${rows.join('')}</div>`);
+  });
+  if(reps.length){ total += nrep; secs.push(`<h3 class="gold" style="margin:16px 0 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em">Rediffusions · ${nrep}</h3>${reps.join('')}`); }
+  add('Replay d’onboarding', FATHOM_CHAPTERS.filter(([t,l])=>fsHit(l,terms)).map(([t,l])=>fsRow(fmtT(t), fsMark(l,terms), `fsGo('final')`, FATHOM_URL+'?timestamp='+t)));
+  const tools = [
+    ...SCRIPTS.map(([n,t,u])=>[n, 'script de vente '+t]), ...TOOLS.map(([n,t])=>[n, t]),
+    ['Comment réserver un RDV pris dans nos agendas','calendly rendez-vous'],['Ajouter des associés à l’appel','invité calendly'],['Inviter le prospect sur un autre e-mail','mail calendly'],['Régler le fuseau horaire sur Central European Time','calendly heure de la France']];
+  add('Boîte à outils', tools.filter(([n,x])=>fsHit(n+' '+x,terms)).map(([n])=>fsRow('Outil', fsMark(n,terms), `fsGo('tools')`)));
+  return total ? `<p class="mut" style="margin:0;font-size:14px">${total} résultat${total>1?'s':''} pour « ${esc(q.trim())} »</p>${secs.join('')}` : `<p class="mut" style="margin:0">Aucun résultat pour « ${esc(q.trim())} ». Essaie un mot plus court.</p>`;
+}
+function fsDraw(){
+  const box = document.getElementById('fsres'); if(!box) return;
+  box.hidden = !S.qOpen;
+  document.getElementById('fsx').style.display = S.qOpen ? '' : 'none';
+  if(S.qOpen) box.innerHTML = fsResults(S.q || '');
+}
+function fsSet(w){ S.q = w; S.qOpen = true; document.getElementById('fsq').value = w; fsDraw(); }
+function fsClose(){ S.q = ''; S.qOpen = false; document.getElementById('fsq').value = ''; fsDraw(); }
+function fsGo(k){ S.qOpen = false; S.openLesson = k; vFormation(); window.scrollTo(0,0); }
+function fsRep(i, show){
+  S.qOpen = false; fsDraw(); S.repCat = REPLAYS[i].cat; S.openRep = i;
+  const b = document.getElementById('repbox'); b.innerHTML = repInner();
+  const el = show && document.getElementById(show);
+  if(el){ const btn = [...b.querySelectorAll('button')].find(x => x.textContent.includes(show==='rax' ? 'axes' : 'le plan')); if(btn) btn.click(); }
+  b.scrollIntoView({behavior:'smooth'});
+}
+const fsBar = () => `<div style="margin:0 0 22px"><div style="display:flex;gap:10px"><input type="search" id="fsq" autocomplete="off" placeholder="🔍 Rechercher dans la formation : prix, accroche, rendez-vous…" value="${esc(S.q||'')}" onfocus="S.qOpen=true;fsDraw()" oninput="S.q=this.value;S.qOpen=true;fsDraw()" onkeydown="if(event.key==='Escape'){fsClose();this.blur()}" style="flex:1;height:48px;font-size:16px"><button class="btn" id="fsx" onclick="fsClose()" style="height:48px;display:none">✕ Fermer</button></div><div id="fsres" class="panel" style="margin-top:10px;max-height:65vh;overflow:auto;position:relative;z-index:6" hidden></div></div>`;
+
 function vFormation(){
   if(!S.lessons.length){ view().innerHTML = '<h1>Formation</h1><div class="panel" style="margin-top:0">Aucune leçon pour le moment.</div>' + finalMod() + replaysBlock() + toolbox(); return; }
   const sp = S.openLesson==='final' || S.openLesson==='tools';
   const cur = S.lessons.find(l=>l.id===S.openLesson) || S.lessons[0];
   const dn = S.lessons.filter(l=>S.ldone.has(l.id)).length;
-  view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 22px">${dn} / ${S.lessons.length} vidéos vues</p>
+  view().innerHTML = `<h1>Formation</h1><p class="mut" style="margin:-12px 0 14px">${dn} / ${S.lessons.length} vidéos vues</p>${fsBar()}
     <div class="fgrid">
     ${sp ? `<div class="fleft">${S.openLesson==='final' ? finalMod() : toolbox()}<label class="row" style="color:#fff;font-size:15px;margin:18px 0 0;gap:10px"><input type="checkbox" ${S.rdone.has('module:'+S.openLesson)?'checked':''} onchange="modSeen('${S.openLesson}',this.checked)">J'ai vu cette vidéo</label></div>` : `<div class="panel" style="margin:0"><div class="vstick"><iframe style="aspect-ratio:16/9" src="${cur.youtube_id.length > 15 ? 'https://iframe.mediadelivery.net/embed/'+BUNNY_LIB+'/'+esc(cur.youtube_id)+'?preload=true&autoplay=false' : 'https://www.youtube-nocookie.com/embed/'+esc(cur.youtube_id)+'?rel=0&modestbranding=1'}" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
     <div class="vmeta"><p class="faint" style="margin:16px 0 2px;font-size:13px;text-transform:uppercase;letter-spacing:.08em">Module ${String(S.lessons.indexOf(cur)).padStart(2,'0')}</p><h2 style="margin:0 0 10px">${esc(cur.title)}</h2>
     ${cur.description?`<p class="mut" style="margin:0 0 14px;line-height:1.55">${esc(cur.description)}</p>`:''}
     <label class="row" style="color:#fff;font-size:15px;margin:0;gap:10px"><input type="checkbox" id="seen" ${S.ldone.has(cur.id)?'checked':''}>J'ai vu cette vidéo</label></div></div>`}
     <div class="panel" style="margin:0;padding:14px 18px"><h2 style="margin:0 0 4px">Sommaire</h2>${S.lessons.map((l,n)=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.ldone.has(l.id)?'background:var(--ok)':''}"></span><span class="rk" style="min-width:22px">${String(n).padStart(2,'0')}</span><a href="#" data-l="${l.id}" style="color:${!sp&&l.id===cur.id?'#fff':'var(--dim)'};text-decoration:none;font-weight:${!sp&&l.id===cur.id?700:500};flex:1">${esc(l.title)}</a></div>`).join('')}${[['final','Finalisation de votre apprentissage'],['tools','Boîte à outils']].map(([k,t],j)=>`<div class="todo" style="padding:12px 0"><span class="dot" style="${S.rdone.has('module:'+k)?'background:var(--ok)':'opacity:.35'}"></span><span class="rk" style="min-width:22px">${String(S.lessons.length+j).padStart(2,'0')}</span><a href="#" data-l="${k}" style="color:${S.openLesson===k?'#fff':'var(--dim)'};text-decoration:none;font-weight:${S.openLesson===k?700:500};flex:1">${t}</a></div>`).join('')}</div></div>` + replaysBlock();
+  fsDraw();
   view().querySelectorAll('[data-l]').forEach(a => a.onclick = e => { e.preventDefault(); S.openLesson = isNaN(+a.dataset.l) ? a.dataset.l : +a.dataset.l; vFormation(); });
   const seenEl = document.getElementById('seen'); if(seenEl) seenEl.onchange = async e => {
     if(e.target.checked){ await sb.from('lessons_done').insert({user_id:S.user.id,lesson_id:cur.id}); S.ldone.add(cur.id); }
