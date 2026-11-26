@@ -592,6 +592,25 @@ function fsMark(text, terms){
   while(i < chars.length){ let j = i; while(j < chars.length && on[j] === on[i]) j++; const part = esc(chars.slice(i,j).join('')); out += on[i] ? `<mark style="background:rgba(212,179,106,.3);color:#fff;border-radius:3px;padding:0 1px">${part}</mark>` : part; i = j; }
   return out;
 }
+/* paroles : transcriptions chargées à la première recherche (table app_content, comptes connectés) */
+function fsLoadTx(){
+  if(S.tx !== undefined) return;
+  S.tx = null;
+  sb.from('app_content').select('value').eq('key','transcripts').maybeSingle().then(r => { if(r.error){ S.tx = undefined; return; } S.tx = r.data?.value || {}; fsDraw(); });
+}
+function fsSnip(text, terms){
+  const n = fsNorm(text); let at = -1;
+  terms.forEach(g => g.forEach(v => { const m = fsRe(v).exec(n); if(m && (at < 0 || m.index < at)) at = m.index; }));
+  const chars = Array.from(text), a = Math.max(0, at - 80), b = Math.min(chars.length, Math.max(at,0) + 170);
+  return (a > 0 ? '… ' : '') + fsMark(chars.slice(a,b).join(''), terms) + (b < chars.length ? ' …' : '');
+}
+function fsSpoken(url, terms, open){
+  const segs = S.tx?.[String(url).split('/').pop()] || [];
+  const rows = segs.filter(x => fsHit(x[2], terms)).map(([t,who,txt]) => fsRow(fmtT(t), `<span class="mut">${esc(who)} : </span>${fsSnip(txt,terms)}`, open, url+'?timestamp='+t));
+  if(!rows.length) return {n:0, html:''};
+  const more = rows.length > 3 ? `<details><summary class="faint" style="cursor:pointer;padding:8px 4px;font-size:13.5px">Voir les ${rows.length-3} autres passages</summary>${rows.slice(3).join('')}</details>` : '';
+  return {n:rows.length, html:`<p class="faint" style="margin:10px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:.06em">Ce qui est dit · ${rows.length}</p>${rows.slice(0,3).join('')}${more}`};
+}
 const fsRow = (label, html, onclick, href) => `<div class="chkrow" style="padding:9px 4px;font-size:15px;cursor:default;align-items:flex-start;gap:12px">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener" class="gold" style="min-width:64px;font-weight:600;text-decoration:none;font-variant-numeric:tabular-nums">▶ ${label}</a>` : `<span class="faint" style="min-width:64px;font-size:13px">${label}</span>`}<a href="#" onclick="${onclick};return false" style="flex:1;color:#fff;text-decoration:none;line-height:1.5">${html}</a></div>`;
 function fsResults(q){
   const terms = fsTerms(q);
@@ -605,23 +624,27 @@ function fsResults(q){
     r.ch.forEach(([t,l]) => { if(fsHit(l,terms)) rows.push(fsRow(fmtT(t), fsMark(l,terms), `fsRep(${i},'rpl')`, r.url+'?timestamp='+t)); });
     (r.axes||[]).forEach(([h,li]) => li.forEach(x => { if(fsHit(h+' '+x,terms)) rows.push(fsRow('Conseil', `<span class="mut">${fsMark(h,terms)} : </span>${fsMark(x,terms)}`, `fsRep(${i},'rax')`)); }));
     const head = fsHit(r.title+' '+r.desc, terms);
-    if(!rows.length && !head) return;
-    nrep += rows.length || 1;
-    reps.push(`<div style="margin:10px 0 0;padding:10px 14px 4px;border:1px solid var(--line2);border-radius:12px"><a href="#" onclick="fsRep(${i});return false" style="color:#fff;text-decoration:none;font-weight:700">${fsMark(r.title,terms)}</a><span class="faint" style="display:block;font-size:12.5px">${esc(r.date)} · ${esc(r.type)}</span>${head?`<p class="mut" style="margin:6px 0;font-size:13.5px">${fsMark(r.desc,terms)}</p>`:''}${rows.join('')}</div>`);
+    const sp = fsSpoken(r.url, terms, `fsRep(${i})`);
+    if(!rows.length && !head && !sp.n) return;
+    nrep += (rows.length + sp.n) || 1;
+    reps.push(`<div style="margin:10px 0 0;padding:10px 14px 4px;border:1px solid var(--line2);border-radius:12px"><a href="#" onclick="fsRep(${i});return false" style="color:#fff;text-decoration:none;font-weight:700">${fsMark(r.title,terms)}</a><span class="faint" style="display:block;font-size:12.5px">${esc(r.date)} · ${esc(r.type)}</span>${head?`<p class="mut" style="margin:6px 0;font-size:13.5px">${fsMark(r.desc,terms)}</p>`:''}${rows.join('')}${sp.html}</div>`);
   });
   if(reps.length){ total += nrep; secs.push(`<h3 class="gold" style="margin:16px 0 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em">Rediffusions · ${nrep}</h3>${reps.join('')}`); }
-  add('Replay d’onboarding', FATHOM_CHAPTERS.filter(([t,l])=>fsHit(l,terms)).map(([t,l])=>fsRow(fmtT(t), fsMark(l,terms), `fsGo('final')`, FATHOM_URL+'?timestamp='+t)));
+  const obRows = FATHOM_CHAPTERS.filter(([t,l])=>fsHit(l,terms)).map(([t,l])=>fsRow(fmtT(t), fsMark(l,terms), `fsGo('final')`, FATHOM_URL+'?timestamp='+t));
+  const ob = fsSpoken(FATHOM_URL, terms, `fsGo('final')`);
+  if(obRows.length + ob.n){ total += obRows.length + ob.n; secs.push(`<h3 class="gold" style="margin:16px 0 4px;font-size:14px;text-transform:uppercase;letter-spacing:.06em">Replay d’onboarding · ${obRows.length + ob.n}</h3>${obRows.join('')}${ob.html}`); }
   const tools = [
     ...SCRIPTS.map(([n,t,u])=>[n, 'script de vente '+t]), ...TOOLS.map(([n,t])=>[n, t]),
     ['Comment réserver un RDV pris dans nos agendas','calendly rendez-vous'],['Ajouter des associés à l’appel','invité calendly'],['Inviter le prospect sur un autre e-mail','mail calendly'],['Régler le fuseau horaire sur Central European Time','calendly heure de la France']];
   add('Boîte à outils', tools.filter(([n,x])=>fsHit(n+' '+x,terms)).map(([n])=>fsRow('Outil', fsMark(n,terms), `fsGo('tools')`)));
-  return total ? `<p class="mut" style="margin:0;font-size:14px">${total} résultat${total>1?'s':''} pour « ${esc(q.trim())} »</p>${secs.join('')}` : `<p class="mut" style="margin:0">Aucun résultat pour « ${esc(q.trim())} ». Essaie un mot plus court.</p>`;
+  const wait = S.tx ? '' : '<p class="faint" style="margin:0 0 8px;font-size:13px">Chargement des transcriptions…</p>';
+  return wait + (total ? `<p class="mut" style="margin:0;font-size:14px">${total} résultat${total>1?'s':''} pour « ${esc(q.trim())} »</p>${secs.join('')}` : `<p class="mut" style="margin:0">Aucun résultat pour « ${esc(q.trim())} ». Essaie un mot plus court.</p>`);
 }
 function fsDraw(){
   const box = document.getElementById('fsres'); if(!box) return;
   box.hidden = !S.qOpen;
   document.getElementById('fsx').style.display = S.qOpen ? '' : 'none';
-  if(S.qOpen) box.innerHTML = fsResults(S.q || '');
+  if(S.qOpen){ fsLoadTx(); box.innerHTML = fsResults(S.q || ''); }
 }
 function fsSet(w){ S.q = w; S.qOpen = true; document.getElementById('fsq').value = w; fsDraw(); }
 function fsClose(){ S.q = ''; S.qOpen = false; document.getElementById('fsq').value = ''; fsDraw(); }
